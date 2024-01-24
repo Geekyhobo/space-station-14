@@ -533,6 +533,8 @@ namespace Content.Server.Database
         [Required, Column(TypeName = "jsonb")] public JsonDocument Json { get; set; } = default!;
 
         public List<AdminLogPlayer> Players { get; set; } = default!;
+
+        public string Name { get; set; } = default!;
     }
 
     public class AdminLogPlayer
