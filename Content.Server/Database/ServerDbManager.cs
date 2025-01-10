@@ -222,6 +222,7 @@ namespace Content.Server.Database
         Task<SupportExchange?> GetSupportExchangeAsync(int supportRound, Guid supportTarget);
         Task<int> AddSupportExchangeAsync(SupportExchange exchange);
         Task AddSupportMessageAsync(SupportMessage message);
+        Task<int> GetNextMessageIdForExchange(int supportId);
 
         #endregion
 
@@ -746,10 +747,10 @@ namespace Content.Server.Database
             return RunDbCommand(() => _db.AddSupportMessageAsync(message));
         }
 
-        public Task<int> GetMaxMessageIdForExchange(int SupportId)
+        public Task<int> GetNextMessageIdForExchange(int supportId)
         {
             DbReadOpsMetric.Inc();
-            return RunDbCommand(() => _db.GetMaxMessageIdForExchange(SupportId));
+            return RunDbCommand(() => _db.GetNextMessageIdForExchange(supportId));
         }
 
         public Task<bool> GetWhitelistStatusAsync(NetUserId player)
