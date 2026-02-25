@@ -210,8 +210,9 @@ namespace Content.Server.Database
                 // Define primary key
                 entity.HasKey(e => e.SupportExchangeId);
 
-                // Define unique index for combined SupportRound and SupportTargetPlayer to avoid duplicates
-                entity.HasIndex(e => new { e.SupportRound, e.SupportTargetPlayer }).IsUnique();
+                // One active exchange per server/round
+                entity.HasIndex(e => new{e.ServerId, e.SupportExchangeId, e.SupportTargetPlayer})
+                    .IsUnique();
 
                 // Define relationship with SupportMessages
                 entity.HasMany(e => e.SupportMessages)
