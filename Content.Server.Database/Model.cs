@@ -772,30 +772,6 @@ namespace Content.Server.Database
         }
     }
 
-    // Used by SS14.Admin
-    public interface IBanCommon<TUnban> where TUnban : IUnbanCommon
-    {
-        int Id { get; set; }
-        Guid? PlayerUserId { get; set; }
-        NpgsqlInet? Address { get; set; }
-        TypedHwid? HWId { get; set; }
-        DateTime BanTime { get; set; }
-        DateTime? ExpirationTime { get; set; }
-        string Reason { get; set; }
-        NoteSeverity Severity { get; set; }
-        Guid? BanningAdmin { get; set; }
-        TUnban? Unban { get; set; }
-    }
-
-    // Used by SS14.Admin
-    public interface IUnbanCommon
-    {
-        int Id { get; set; }
-        int BanId { get; set; }
-        Guid? UnbanningAdmin { get; set; }
-        DateTime UnbanTime { get; set; }
-    }
-
     /// <summary>
     /// Flags for use with <see cref="ServerBanExemption"/>.
     /// </summary>
