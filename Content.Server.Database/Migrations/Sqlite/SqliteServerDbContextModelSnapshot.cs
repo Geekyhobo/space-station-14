@@ -121,7 +121,45 @@ namespace Content.Server.Database.Migrations.Sqlite
                     b.HasIndex("Type")
                         .HasDatabaseName("IX_admin_log_type");
 
+                    b.HasIndex("Type", "Impact", "Date");
+
                     b.ToTable("admin_log", (string)null);
+                });
+
+            modelBuilder.Entity("Content.Server.Database.AdminLogEntity", b =>
+                {
+                    b.Property<int>("RoundId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("round_id");
+
+                    b.Property<int>("LogId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("log_id");
+
+                    b.Property<int>("EntityUid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("entity_uid");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("role");
+
+                    b.Property<string>("EntityName")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("entity_name");
+
+                    b.Property<string>("PrototypeId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("prototype_id");
+
+                    b.HasKey("RoundId", "LogId", "EntityUid", "Role")
+                        .HasName("PK_admin_log_participant_entity");
+
+                    b.HasIndex("EntityUid", "RoundId", "LogId");
+
+                    b.HasIndex("EntityUid", "Role", "RoundId", "LogId");
+
+                    b.ToTable("admin_log_participant_entity", (string)null);
                 });
 
             modelBuilder.Entity("Content.Server.Database.AdminLogPlayer", b =>
@@ -1409,6 +1447,18 @@ namespace Content.Server.Database.Migrations.Sqlite
                     b.Navigation("Round");
                 });
 
+            modelBuilder.Entity("Content.Server.Database.AdminLogEntity", b =>
+                {
+                    b.HasOne("Content.Server.Database.AdminLog", "Log")
+                        .WithMany("Entities")
+                        .HasForeignKey("RoundId", "LogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_admin_log_participant_entity_admin_log_round_id_log_id");
+
+                    b.Navigation("Log");
+                });
+
             modelBuilder.Entity("Content.Server.Database.AdminLogPlayer", b =>
                 {
                     b.HasOne("Content.Server.Database.Player", "Player")
@@ -1935,6 +1985,8 @@ namespace Content.Server.Database.Migrations.Sqlite
 
             modelBuilder.Entity("Content.Server.Database.AdminLog", b =>
                 {
+                    b.Navigation("Entities");
+
                     b.Navigation("Players");
                 });
 
