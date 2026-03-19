@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -40,6 +40,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
     [Dependency] private readonly ISharedChatManager _chat = default!;
     [Dependency] private readonly IPrototypeManager _proto = default!;
     [Dependency] private readonly IAdminLogEventPublisher _publisher = default!;
+    [Dependency] private readonly ServerDbEntryManager _serverDbEntry = default!;
 
     public const string SawmillId = "admin.logs";
 
@@ -64,7 +65,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         "Number of times the log queue cap has been reached in a round.");
 
     private static readonly Gauge PreRoundQueueCapReached = Metrics.CreateGauge(
-        "admin_logs_queue_cap_reached",
+        "admin_logs_pre_round_queue_cap_reached",
         "Number of times the pre-round log queue cap has been reached in a round.");
 
     private static readonly Gauge LogsSent = Metrics.CreateGauge(
@@ -95,6 +96,9 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
     private int _savingLogs;
     private int _logsDropped;
 
+    private int _serverId;
+    private string _serverName = "unknown";
+
     public void Initialize()
     {
         _sawmill = _logManager.GetSawmill(SawmillId);
@@ -116,6 +120,19 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         _configuration.OnValueChanged(CCVars.AdminLogsHighLogPlaytime,
             value => _highImpactLogPlaytime = value, true);
 
+        _ = Task.Run(async () =>
+        {
+            //this fixes a race
+            try
+            {
+                await EnsureServerIdentity();
+            }
+            catch (Exception e)
+            {
+                _sawmill.Warning($"Failed to resolve admin-log server identity during initialization: {e}");
+            }
+        });
+
         if (_metricsEnabled)
         {
             PreRoundQueueCapReached.Set(0);
@@ -132,9 +149,9 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
 
     public async Task Shutdown()
     {
-        if (!_logQueue.IsEmpty)
+        if (!_logQueue.IsEmpty || !_preRoundLogQueue.IsEmpty)
         {
-            await SaveLogs();
+            await SaveLogs(dropPreRoundInLobby: false);
         }
     }
 
@@ -207,15 +224,22 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         }
     }
 
-    private async Task SaveLogs()
+    private async Task SaveLogs(bool dropPreRoundInLobby = true)
     {
         _nextUpdateTime = _timing.RealTime.Add(_queueSendDelay);
 
-        // TODO ADMIN LOGS array pool
-        var copy = new List<AdminLogEventWriteData>(_logQueue.Count + _preRoundLogQueue.Count);
-        copy.AddRange(_logQueue);
+        var inRoundCount = _logQueue.Count;
+        var preRoundCount = _preRoundLogQueue.Count;
 
-        if (_logQueue.Count >= _queueMax)
+        // TODO ADMIN LOGS array pool
+        var copy = new List<AdminLogEventWriteData>(inRoundCount + preRoundCount);
+
+        while (_logQueue.TryDequeue(out var inRoundLog))
+        {
+            copy.Add(inRoundLog);
+        }
+
+        if (inRoundCount >= _queueMax)
         {
             _sawmill.Warning($"In-round cap of {_queueMax} reached for admin logs.");
         }
@@ -226,73 +250,113 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
             _sawmill.Error($"Dropped {dropped} logs. Current max threshold: {_dropThreshold}");
         }
 
-        if (_runLevel == GameRunLevel.PreRoundLobby && !_preRoundLogQueue.IsEmpty)
+        if (dropPreRoundInLobby && _runLevel == GameRunLevel.PreRoundLobby && preRoundCount > 0)
         {
-            _sawmill.Error($"Dropping {_preRoundLogQueue.Count} pre-round logs. Current cap: {_preRoundQueueMax}");
+            var droppedPreRound = 0;
+            while (_preRoundLogQueue.TryDequeue(out _))
+            {
+                droppedPreRound++;
+            }
+
+            _sawmill.Error($"Dropping {droppedPreRound} pre-round logs. Current cap: {_preRoundQueueMax}");
         }
         else
         {
-            foreach (var log in _preRoundLogQueue)
+            while (_preRoundLogQueue.TryDequeue(out var preRoundLog))
             {
-                CacheLog(log);
+                CacheLog(preRoundLog);
+                copy.Add(preRoundLog);
             }
-
-            copy.AddRange(_preRoundLogQueue);
         }
 
-        _logQueue.Clear();
         Queue.Set(0);
-
-        _preRoundLogQueue.Clear();
         PreRoundQueue.Set(0);
-        // Round ID is unknown for pre-round logs. Attach them to the active round before persistence.
-        for (var i = copy.Count - 1; i >= 0; i--)
-        {
-            var log = copy[i];
-            if (log.RoundId > 0)
-                continue;
 
-            if (_currentRoundId > 0)
+        try
+        {
+            await EnsureServerIdentity();
+
+            for (var i = 0; i < copy.Count; i++)
             {
-                copy[i] = new AdminLogEventWriteData
+                var log = copy[i];
+
+                if (log.ServerId <= 0)
+                    log.ServerId = _serverId;
+
+                if (string.IsNullOrWhiteSpace(log.ServerName))
+                    log.ServerName = _serverName;
+            }
+
+            // Round ID is unknown for pre-round logs. Attach them to the active round before persistence.
+            for (var i = copy.Count - 1; i >= 0; i--)
+            {
+                var log = copy[i];
+                if (log.RoundId > 0)
+                    continue;
+
+                if (_currentRoundId > 0)
                 {
-                    RoundId = _currentRoundId,
-                    Type = log.Type,
-                    Impact = log.Impact,
-                    OccurredAt = log.OccurredAt,
-                    Message = log.Message,
-                    Json = log.Json,
-                    Players = log.Players,
-                    Entities = log.Entities,
-                };
-                continue;
+                    copy[i] = new AdminLogEventWriteData
+                    {
+                        ServerId = log.ServerId,
+                        ServerName = log.ServerName,
+                        RoundId = _currentRoundId,
+                        Type = log.Type,
+                        Impact = log.Impact,
+                        OccurredAt = log.OccurredAt,
+                        Message = log.Message,
+                        Json = log.Json,
+                        Players = log.Players,
+                        Entities = log.Entities,
+                        PlayerRoles = log.PlayerRoles,
+                    };
+                    continue;
+                }
+
+                _sawmill.Warning($"Dropping admin log with unresolved round id. Type: {log.Type}, Message: {log.Message}");
+                copy.RemoveAt(i);
             }
 
-            _sawmill.Warning($"Dropping admin log with unresolved round id. Type: {log.Type}, Message: {log.Message}");
-            copy.RemoveAt(i);
-        }
+            copy = CondenseLogs(copy);
 
-        if (copy.Count == 0)
-            return;
-
-        var task = _db.AddAdminLogs(copy);
-
-        _sawmill.Debug($"Saving {copy.Count} admin logs.");
-
-        if (_metricsEnabled)
-        {
-            LogsSent.Inc(copy.Count);
-
-            using (DatabaseUpdateTime.NewTimer())
-            {
-                await task;
-                PublishStructuredLogs(copy);
+            if (copy.Count == 0)
                 return;
-            }
-        }
 
-        await task;
-        PublishStructuredLogs(copy);
+            _sawmill.Debug($"Saving {copy.Count} admin logs.");
+
+            if (_metricsEnabled)
+            {
+                LogsSent.Inc(copy.Count);
+
+                using (DatabaseUpdateTime.NewTimer())
+                {
+                    await _db.AddAdminLogs(copy);
+                }
+            }
+            else
+            {
+                await _db.AddAdminLogs(copy);
+            }
+
+            PublishStructuredLogs(copy);
+        }
+        catch (Exception e)
+        {
+            var targetQueue = _runLevel == GameRunLevel.PreRoundLobby ? _preRoundLogQueue : _logQueue;
+
+            foreach (var log in copy)
+            {
+                if (targetQueue.Count >= _dropThreshold)
+                {
+                    Interlocked.Increment(ref _logsDropped);
+                    continue;
+                }
+
+                targetQueue.Enqueue(log);
+            }
+
+            _sawmill.Error($"Failed to persist admin logs. Re-queued {copy.Count} logs. Structured publish skipped. Error: {e}");
+        }
     }
 
     private void PublishStructuredLogs(List<AdminLogEventWriteData> logs)
@@ -304,8 +368,10 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
                 foreach (var log in logs)
                 {
                     var logEvent = new StructuredAdminLogEvent(
+                        log.ServerId,
+                        log.ServerName,
                         log.RoundId,
-                        0,
+                        log.LogId,
                         log.Type,
                         log.Impact,
                         log.OccurredAt,
@@ -375,6 +441,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         var json = JsonSerializer.SerializeToDocument(handler.Values, _jsonOptions);
         var players = GetPlayers(handler.Values);
         var entities = GetEntities(handler.Values, type);
+        var playerRoles = GetPlayerRoles(handler.Values, type);
 
         // PostgreSQL does not support storing null chars in text values.
         if (message.Contains('\0'))
@@ -385,6 +452,8 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
 
         var log = new AdminLogEventWriteData
         {
+            ServerId = _serverId,
+            ServerName = _serverName,
             RoundId = _currentRoundId,
             Type = type,
             Impact = impact,
@@ -393,6 +462,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
             Json = json,
             Players = players,
             Entities = entities,
+            PlayerRoles = playerRoles,
         };
 
         DoAdminAlerts(players, message, impact, handler);
@@ -414,7 +484,8 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         string message,
         JsonDocument json,
         IReadOnlyCollection<Guid>? players = null,
-        IReadOnlyCollection<AdminLogEntityRef>? entities = null)
+        IReadOnlyCollection<AdminLogEntityRef>? entities = null,
+        IReadOnlyDictionary<Guid, AdminLogEntityRole>? playerRoles = null)
     {
         if (!Enabled)
             return;
@@ -432,7 +503,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         {
             foreach (var player in players)
             {
-                AddPlayer(logPlayers,player);
+                AddPlayer(logPlayers, player);
             }
         }
 
@@ -453,6 +524,8 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
 
         var log = new AdminLogEventWriteData
         {
+            ServerId = _serverId,
+            ServerName = _serverName,
             RoundId = _currentRoundId,
             Type = type,
             Impact = impact,
@@ -461,6 +534,9 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
             Json = json,
             Players = logPlayers,
             Entities = logEntities,
+            PlayerRoles = playerRoles?.Count > 0
+                ? new Dictionary<Guid, AdminLogEntityRole>(playerRoles)
+                : null,
         };
 
         if (preRound)
@@ -506,6 +582,34 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         }
 
         return players;
+    }
+
+    /// <summary>
+    /// Builds a per-player role map from the log values.
+    /// When a log value carries a player session,
+    /// the role inferred from the field key is recorded for that player GUID.
+    /// This lets <c>AddAdminLogs</c> write meaningful roles on player participant rows instead of
+    /// always defaulting to whatever the actor is.
+    /// Returns <c>null</c> when no player-entity associations are found
+    /// </summary>
+    private Dictionary<Guid, AdminLogEntityRole>? GetPlayerRoles(Dictionary<string, object?> values, LogType type)
+    {
+        Dictionary<Guid, AdminLogEntityRole>? roles = null;
+
+        foreach (var (key, value) in values)
+        {
+            if (value is not EntityStringRepresentation rep)
+                continue;
+            if (rep.Session is not { } session)
+                continue;
+
+            var role = GetEntityRole(type, key);
+            roles ??= new Dictionary<Guid, AdminLogEntityRole>();
+            // First role wins if the same player appears under multiple keys.
+            roles.TryAdd(session.UserId.UserId, role);
+        }
+
+        return roles;
     }
 
      private List<AdminLogEventEntityWriteData> GetEntities(Dictionary<string, object?> values, LogType type)
@@ -770,6 +874,11 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
 
     public async Task<List<SharedAdminLog>> All(LogFilter? filter = null, Func<List<SharedAdminLog>>? listProvider = null)
     {
+        if (_serverId <= 0)
+            await EnsureServerIdentity();
+
+        filter = ApplyServerScope(filter);
+
         if (TrySearchCache(filter, out var results))
         {
             return results;
@@ -795,14 +904,30 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         return list;
     }
 
-    public IAsyncEnumerable<string> AllMessages(LogFilter? filter = null)
+    public async IAsyncEnumerable<string> AllMessages(LogFilter? filter = null)
     {
-        return _db.GetAdminLogMessages(filter);
+        if (_serverId <= 0)
+            await EnsureServerIdentity();
+
+        filter = ApplyServerScope(filter);
+
+        await foreach (var message in _db.GetAdminLogMessages(filter))
+        {
+            yield return message;
+        }
     }
 
-    public IAsyncEnumerable<JsonDocument> AllJson(LogFilter? filter = null)
+    public async IAsyncEnumerable<JsonDocument> AllJson(LogFilter? filter = null)
     {
-        return _db.GetAdminLogsJson(filter);
+        if (_serverId <= 0)
+            await EnsureServerIdentity();
+
+        filter = ApplyServerScope(filter);
+
+        await foreach (var json in _db.GetAdminLogsJson(filter))
+        {
+            yield return json;
+        }
     }
 
     public Task<Round> Round(int roundId)
@@ -836,8 +961,249 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         return Round(_currentRoundId);
     }
 
-    public Task<int> CountLogs(int round)
+    public async Task<int> CountLogs(int round, int? serverId = null)
     {
-        return _db.CountAdminLogs(round);
+        if (serverId == null && _serverId <= 0)
+            await EnsureServerIdentity();
+
+        var scopedServerId = serverId ?? (_serverId > 0 ? _serverId : null);
+        return await _db.CountAdminLogs(round, scopedServerId);
+    }
+
+    /// <summary>
+    /// Ensures the filter has a Server.Id set.
+    /// defaults to the current server's resolved identity.
+    /// This keeps every query index-friendly on the Server Id composite indexes
+    /// without requiring every call-site to remember to set ServerId manually.
+    /// </summary>
+    private LogFilter ApplyServerScope(LogFilter? filter)
+    {
+        filter ??= new LogFilter();
+        filter.ServerId ??= _serverId > 0 ? _serverId : null;
+        return filter;
+    }
+
+    /// <summary>
+    /// Condenses high-frequency low-signal log events into summary entries.
+    /// Groups eligible events by (ServerId, RoundId, LogType, primary player) using a
+    /// gap-based time window, then replaces groups exceeding
+    /// <see cref="LogCondensationPolicy.GetMinGroupSize"/> with a single condensed event.
+    /// </summary>
+    /// <remarks>
+    /// The condensed event preserves the original <see cref="LogType"/> so it remains
+    /// searchable. The summary message includes the event count
+    /// and distinct entity names. The JSON payload contains condensation metadata
+    /// (count, time window, sample messages) for admin investigation.
+    /// </remarks>
+    private List<AdminLogEventWriteData> CondenseLogs(List<AdminLogEventWriteData> logs)
+    {
+        if (logs.Count < LogCondensationPolicy.AggressiveMinGroupSize)
+            return logs;
+
+        // Partition: eligible events get grouped, ineligible pass through unchanged.
+        var result = new List<AdminLogEventWriteData>(logs.Count);
+        var buckets = new Dictionary<(int ServerId, int RoundId, LogType Type, Guid Player), List<AdminLogEventWriteData>>();
+
+        foreach (var log in logs)
+        {
+            if (!LogCondensationPolicy.IsEligible(log.Type, log.Impact) || log.Players.Count == 0)
+            {
+                result.Add(log);
+                continue;
+            }
+
+            // Group by the first (primary) player.
+            // TODO: pretty sure this breaks with mutiple players lol
+            // for eligible types; use the first player as the grouping key.
+            var key = (log.ServerId, log.RoundId, log.Type, log.Players[0]);
+
+            if (!buckets.TryGetValue(key, out var bucket))
+            {
+                bucket = new List<AdminLogEventWriteData>(8);
+                buckets[key] = bucket;
+            }
+
+            bucket.Add(log);
+        }
+
+        // Process each bucket: split into time-windowed sub-groups, condense large ones.
+        foreach (var (key, bucket) in buckets)
+        {
+            var minGroupSize = LogCondensationPolicy.GetMinGroupSize(key.Type);
+            if (bucket.Count < minGroupSize)
+            {
+                // Too few events to condense — emit individually.
+                result.AddRange(bucket);
+                continue;
+            }
+
+            // Sort by time within the bucket TODO: I think this breaks sometimes
+            bucket.Sort((a, b) => a.OccurredAt.CompareTo(b.OccurredAt));
+
+            // Split into sub-groups using gap-based windowing.
+            var subGroupStart = 0;
+            for (var i = 1; i <= bucket.Count; i++)
+            {
+                var endOfGroup = i == bucket.Count
+                    || (bucket[i].OccurredAt - bucket[i - 1].OccurredAt) > LogCondensationPolicy.MaxEventGap;
+
+                if (!endOfGroup)
+                    continue;
+
+                var subGroupSize = i - subGroupStart;
+                if (subGroupSize >= minGroupSize)
+                {
+                    var condensed = BuildCondensedEvent(key.Type, bucket, subGroupStart, i);
+                    result.Add(condensed);
+                }
+                else
+                {
+                    for (var j = subGroupStart; j < i; j++)
+                        result.Add(bucket[j]);
+                }
+
+                subGroupStart = i;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Builds a single condensed event from a slice of the bucket.
+    /// </summary>
+    private AdminLogEventWriteData BuildCondensedEvent(
+        LogType type,
+        List<AdminLogEventWriteData> bucket,
+        int start,
+        int end)
+    {
+        var count = end - start;
+        var first = bucket[start];
+        var last = bucket[end - 1];
+        var windowSeconds = (last.OccurredAt - first.OccurredAt).TotalSeconds;
+
+        // Merge all distinct players.
+        var allPlayers = new List<Guid>();
+        // Merge per-player roles (first role seen for each player wins).
+        Dictionary<Guid, AdminLogEntityRole>? allPlayerRoles = null;
+        // Merge all distinct entities, keeping role information.
+        var allEntities = new List<AdminLogEventEntityWriteData>();
+        // Collect distinct target/object entity names for the summary message.
+        var entityNameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        // Sample messages for the JSON payload.
+        var sampleMessages = new List<string>(LogCondensationPolicy.MaxSampleMessages);
+
+        for (var i = start; i < end; i++)
+        {
+            var log = bucket[i];
+
+            foreach (var player in log.Players)
+                AddPlayer(allPlayers, player);
+
+            // Merge player role overrides from constituent events.
+            if (log.PlayerRoles != null)
+            {
+                allPlayerRoles ??= new Dictionary<Guid, AdminLogEntityRole>();
+                foreach (var (guid, role) in log.PlayerRoles)
+                    allPlayerRoles.TryAdd(guid, role);
+            }
+
+            foreach (var entity in log.Entities)
+            {
+                // Deduplicate entities by (uid, role).
+                var found = false;
+                foreach (var existing in allEntities)
+                {
+                    if (existing.EntityUid == entity.EntityUid && existing.Role == entity.Role)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                    allEntities.Add(entity);
+
+                // Track target/object entity names for the summary.
+                if (entity.EntityName != null && entity.Role != AdminLogEntityRole.Actor)
+                {
+                    entityNameCounts.TryGetValue(entity.EntityName, out var c);
+                    entityNameCounts[entity.EntityName] = c + 1;
+                }
+            }
+
+            if (sampleMessages.Count < LogCondensationPolicy.MaxSampleMessages)
+                sampleMessages.Add(log.Message);
+        }
+
+        // Resolve the condensed LogType (uses burst variant if one is mapped).
+        var condensedType = LogCondensationPolicy.GetCondensedType(type);
+        var typeName = type.ToString();
+
+        // Show at least 1s when all events occurred in the same tick.
+        var displaySeconds = Math.Max(1, (int) Math.Round(windowSeconds));
+
+        // Build human-readable summary message.
+        string summary;
+
+        if (entityNameCounts.Count > 0)
+        {
+            // Entity-aware summary: list the most-seen non-Actor entity names.
+            var topNames = entityNameCounts
+                .OrderByDescending(kv => kv.Value)
+                .Take(LogCondensationPolicy.MaxEntityNamesInSummary)
+                .Select(kv => kv.Value > 1 ? $"{kv.Key} ×{kv.Value}" : kv.Key);
+
+            var suffix = entityNameCounts.Count > LogCondensationPolicy.MaxEntityNamesInSummary
+                ? $", +{entityNameCounts.Count - LogCondensationPolicy.MaxEntityNamesInSummary} more"
+                : "";
+
+            summary = $"[×{count} in {displaySeconds}s] {typeName} ({string.Join(", ", topNames)}{suffix})";
+        }
+        else
+        {
+            // No non-Actor entity names available: fall back to the first event's message
+            summary = $"[×{count} in {displaySeconds}s] {first.Message}";
+        }
+
+        // Build condensation metadata JSON.
+        var condensationMeta = new Dictionary<string, object?>
+        {
+            ["condensed"] = true,
+            ["count"] = count,
+            ["window_seconds"] = Math.Round(windowSeconds, 1),
+            ["first_at"] = first.OccurredAt.ToString("O"),
+            ["last_at"] = last.OccurredAt.ToString("O"),
+            ["log_type"] = typeName,
+            ["sample_messages"] = sampleMessages,
+        };
+
+        var json = JsonSerializer.SerializeToDocument(condensationMeta, _jsonOptions);
+
+        return new AdminLogEventWriteData
+        {
+            ServerId = first.ServerId,
+            ServerName = first.ServerName,
+            RoundId = first.RoundId,
+            Type = condensedType,  // Uses burst variant when mapped, original type otherwise.
+            Impact = first.Impact,
+            OccurredAt = first.OccurredAt,
+            Message = summary,
+            Json = json,
+            Players = allPlayers,
+            Entities = allEntities,
+            PlayerRoles = allPlayerRoles,
+        };
+    }
+
+    private async Task EnsureServerIdentity()
+    {
+        if (_serverId > 0)
+            return;
+
+        var server = await _serverDbEntry.ServerEntity;
+        _serverId = server.Id;
+        _serverName = server.Name;
     }
 }

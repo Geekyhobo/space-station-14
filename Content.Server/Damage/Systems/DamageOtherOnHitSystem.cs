@@ -1,9 +1,8 @@
 using System.Text.Json;
 using Content.Server.Administration.Logs;
-using Content.Server.Database;
+using Content.Shared.Administration.Logs;
 using Content.Server.Weapons.Ranged.Systems;
 using Content.Shared.Camera;
-using Content.Shared.Damage;
 using Content.Shared.Damage.Components;
 using Content.Shared.Damage.Systems;
 using Content.Shared.Database;
@@ -22,6 +21,7 @@ public sealed class DamageOtherOnHitSystem : SharedDamageOtherOnHitSystem
     [Dependency] private readonly Shared.Damage.Systems.DamageableSystem _damageable = default!;
     [Dependency] private readonly SharedCameraRecoilSystem _sharedCameraRecoil = default!;
     [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private readonly ISharedPlayerManager _player = default!;
 
     public override void Initialize()
     {
@@ -41,6 +41,10 @@ public sealed class DamageOtherOnHitSystem : SharedDamageOtherOnHitSystem
         if (HasComp<MobStateComponent>(args.Target))
         {
             var thrower = args.Component.Thrower;
+            Guid[]? players = null;
+            if (thrower is { } sourcePlayer && _player.TryGetSessionByEntity(sourcePlayer, out var session))
+                players = [session.UserId.UserId];
+
             _adminLogger.AddStructured(
                 LogType.ThrowHit,
                 LogImpact.Medium,
@@ -52,6 +56,7 @@ public sealed class DamageOtherOnHitSystem : SharedDamageOtherOnHitSystem
                     thrower = thrower is null ? null : (int?) thrower.Value,
                     totalDamage = dmg.GetTotal()
                 }),
+                players: players,
                 entities: thrower is { } source
                     ?
                     [
