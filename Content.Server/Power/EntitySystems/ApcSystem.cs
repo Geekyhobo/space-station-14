@@ -100,6 +100,8 @@ public sealed class ApcSystem : EntitySystem
 
     private void OnBoundUiOpen(EntityUid uid, ApcComponent component, BoundUIOpenedEvent args)
     {
+        _adminLogger.Add(LogType.Action, LogImpact.Low,
+            $"{ToPrettyString(args.Actor):user} opened the interface of {ToPrettyString(uid):entity}.");
         UpdateApcState(uid, component);
     }
 
