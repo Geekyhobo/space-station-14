@@ -18,7 +18,7 @@ namespace Content.Server.Administration.Commands;
 public sealed class ChangeCvarCommand : IConsoleCommand
 {
     [Dependency] private readonly IConfigurationManager _configurationManager = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogManager = default!;
+    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
     [Dependency] private readonly CVarControlManager _cVarControlManager = default!;
 
     /// <summary>
@@ -179,7 +179,7 @@ public sealed class ChangeCvarCommand : IConsoleCommand
 
                 var oldValue = _configurationManager.GetCVar<object>(cvar);
                 _configurationManager.SetCVar(cvar, parsed);
-                _adminLogManager.Add(LogType.AdminCommands,
+                _adminLogger.Add(LogType.AdminCommands,
                     LogImpact.Extreme,
                     $"{shell.Player!.Name} ({shell.Player!.UserId}) changed CVAR {cvar} from {oldValue.ToString()} to {parsed.ToString()}"
                     );

@@ -290,7 +290,7 @@ public abstract partial class SharedStunSystem
             // In case you're wondering, the KnockdownOverCheck, returns if we're able to move, so if next update is null.
             // An entity that can't crawl will stand up the next time they can move, which should prevent moving while knocked down.
             RemComp<KnockedDownComponent>(entity);
-            _adminLogger.Add(LogType.Stamina, LogImpact.Medium, $"{ToPrettyString(entity):user} has stood up from knockdown.");
+            _adminLogger.Add(LogType.Stamina, LogImpact.Medium, $"{entity:user} has stood up from knockdown.");
             return true;
         }
 
@@ -411,7 +411,7 @@ public abstract partial class SharedStunSystem
         // Remove Component
         RemComp<KnockedDownComponent>(entity);
 
-        _adminLogger.Add(LogType.Stamina, LogImpact.Medium, $"{ToPrettyString(entity):user} has force stood up from knockdown.");
+        _adminLogger.Add(LogType.Stamina, LogImpact.Medium, $"{entity:user} has force stood up from knockdown.");
     }
 
     private void OnKnockedDownAlert(Entity<KnockedDownComponent> entity, ref KnockedDownAlertEvent args)
@@ -595,7 +595,7 @@ public abstract partial class SharedStunSystem
 
         RemComp<KnockedDownComponent>(entity);
 
-        _adminLogger.Add(LogType.Stamina, LogImpact.Medium, $"{ToPrettyString(entity):user} has stood up from knockdown.");
+        _adminLogger.Add(LogType.Stamina, LogImpact.Medium, $"{entity:user} has stood up from knockdown.");
     }
 
     #endregion

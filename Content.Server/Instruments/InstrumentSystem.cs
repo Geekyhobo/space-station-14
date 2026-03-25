@@ -36,7 +36,7 @@ public sealed partial class InstrumentSystem : SharedInstrumentSystem
     [Dependency] private readonly PopupSystem _popup = default!;
     [Dependency] private readonly TransformSystem _transform = default!;
     [Dependency] private readonly ExamineSystemShared _examineSystem = default!;
-    [Dependency] private readonly IAdminLogManager _admingLogSystem = default!;
+    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
 
     private const float MaxInstrumentBandRange = 10f;
 
@@ -170,10 +170,10 @@ public sealed partial class InstrumentSystem : SharedInstrumentSystem
             .Where(t => t != null)
             .Select(t => t!.ToString()));
 
-        _admingLogSystem.Add(
+        _adminLogger.Add(
             LogType.Instrument,
             LogImpact.Low,
-            $"{ToPrettyString(args.SenderSession.AttachedEntity)} set the midi channels for {ToPrettyString(uid)} to {tracksString}");
+            $"{args.SenderSession.AttachedEntity} set the midi channels for {uid} to {tracksString}");
 
         activeInstrument.Tracks = msg.Tracks;
 

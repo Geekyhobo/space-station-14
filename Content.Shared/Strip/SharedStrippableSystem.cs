@@ -1,4 +1,4 @@
-using System.Text.Json;
+
 using System.Linq;
 using Content.Shared.Administration.Logs;
 using Content.Shared.CombatMode;
@@ -242,14 +242,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.Low,
-            $"{ToPrettyString(user):actor} is trying to {prefix}place the item {ToPrettyString(held):subject} in {ToPrettyString(target):victim}'s {slot} slot",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} is trying to {prefix}place the item {held:subject} in {target:victim}'s {slot} slot",
+            new
             {
                 user = (int) user.Owner,
                 target = (int) target,
                 item = (int) held,
                 slot = slot
-            }),
+            },
             players: players,
             entities:
             [
@@ -317,14 +317,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.Medium,
-            $"{ToPrettyString(user):actor} has placed the item {ToPrettyString(held):subject} in {ToPrettyString(target):victim}'s {slot} slot",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} has placed the item {held:subject} in {target:victim}'s {slot} slot",
+            new
             {
                 user = (int) user.Owner,
                 target = (int) target,
                 item = (int) held,
                 slot = slot
-            }),
+            },
             players: players,
             entities:
             [
@@ -425,14 +425,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.Low,
-            $"{ToPrettyString(user):actor} is trying to {prefix}strip the item {ToPrettyString(item):subject} from {ToPrettyString(target):victim}'s {slot} slot",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} is trying to {prefix}strip the item {item:subject} from {target:victim}'s {slot} slot",
+            new
             {
                 user = (int) user,
                 target = (int) target,
                 item = (int) item,
                 slot = slot
-            }),
+            },
             players: players,
             entities:
             [
@@ -503,14 +503,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.High,
-            $"{ToPrettyString(user):actor} has stripped the item {ToPrettyString(item):subject} from {ToPrettyString(target):victim}'s {slot} slot",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} has stripped the item {item:subject} from {target:victim}'s {slot} slot",
+            new
             {
                 user = (int) user,
                 target = (int) target,
                 item = (int) item,
                 slot = slot
-            }),
+            },
             players: players,
             entities:
             [
@@ -613,14 +613,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.Low,
-            $"{ToPrettyString(user):actor} is trying to {prefix}place the item {ToPrettyString(held):subject} in {ToPrettyString(target):victim}'s hands",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} is trying to {prefix}place the item {held:subject} in {target:victim}'s hands",
+            new
             {
                 user = (int) user.Owner,
                 target = (int) target.Owner,
                 item = (int) held,
                 slot = handName
-            }),
+            },
             players: players,
             entities:
             [
@@ -688,14 +688,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.Medium,
-            $"{ToPrettyString(user):actor} has placed the item {ToPrettyString(held):subject} in {ToPrettyString(target):victim}'s hands",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} has placed the item {held:subject} in {target:victim}'s hands",
+            new
             {
                 user = (int) user.Owner,
                 target = (int) target.Owner,
                 item = (int) held,
                 slot = handName
-            }),
+            },
             players: players,
             entities:
             [
@@ -803,14 +803,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.Low,
-            $"{ToPrettyString(user):actor} is trying to {prefix}strip the item {ToPrettyString(item):subject} from {ToPrettyString(target):victim}'s hands",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} is trying to {prefix}strip the item {item:subject} from {target:victim}'s hands",
+            new
             {
                 user = (int) user.Owner,
                 target = (int) target.Owner,
                 item = (int) item,
                 slot = handName
-            }),
+            },
             players: players,
             entities:
             [
@@ -881,14 +881,14 @@ public abstract class SharedStrippableSystem : EntitySystem
         _adminLogger.AddStructured(
             LogType.Stripping,
             LogImpact.High,
-            $"{ToPrettyString(user):actor} has stripped the item {ToPrettyString(item):subject} from {ToPrettyString(target):victim}'s hands",
-            JsonSerializer.SerializeToDocument(new
+            $"{user:actor} has stripped the item {item:subject} from {target:victim}'s hands",
+            new
             {
                 user = (int) user.Owner,
                 target = (int) target.Owner,
                 item = (int) item,
                 slot = handName
-            }),
+            },
             players: players,
             entities:
             [

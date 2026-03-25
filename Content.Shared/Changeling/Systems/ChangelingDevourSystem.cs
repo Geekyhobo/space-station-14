@@ -200,7 +200,7 @@ public sealed class ChangelingDevourSystem : EntitySystem
 
         ent.Comp.NextTick = curTime + ent.Comp.DamageTimeBetweenTicks;
 
-        _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ToPrettyString(ent.Owner):player} began to devour {ToPrettyString(args.Target):player} identity");
+        _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ent.Owner:player} began to devour {args.Target:player} identity");
 
         _doAfterSystem.TryStartDoAfter(new DoAfterArgs(EntityManager,
             ent,
@@ -233,7 +233,7 @@ public sealed class ChangelingDevourSystem : EntitySystem
 
         if (!_mobState.IsDead((EntityUid)target))
         {
-            _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ToPrettyString(ent.Owner):player}  unsuccessfully devoured {ToPrettyString(args.Target):player}'s identity");
+            _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ent.Owner:player}  unsuccessfully devoured {args.Target:player}'s identity");
             _popupSystem.PopupClient(Loc.GetString("changeling-devour-consume-failed-not-dead"), args.User, args.User, PopupType.Medium);
             return;
         }
@@ -252,7 +252,7 @@ public sealed class ChangelingDevourSystem : EntitySystem
             && HasComp<HumanoidProfileComponent>(target)
             && TryComp<ChangelingIdentityComponent>(args.User, out var identityStorage))
         {
-            _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ToPrettyString(ent.Owner):player}  successfully devoured {ToPrettyString(args.Target):player}'s identity");
+            _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ent.Owner:player}  successfully devoured {args.Target:player}'s identity");
             _changelingIdentitySystem.CloneToPausedMap((ent, identityStorage), target.Value);
 
             if (_inventorySystem.TryGetSlotEntity(target.Value, "jumpsuit", out var item)

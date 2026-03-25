@@ -93,7 +93,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                 if (_doorSystem.TryToggleDoor(args.Target.Value, doorComp, user: args.User, predicted: true))
                     _adminLogger.Add(LogType.Action,
                         LogImpact.Medium,
-                        $"{ToPrettyString(args.User):player} used {ToPrettyString(args.Used)} on {ToPrettyString(args.Target.Value)}: {doorComp.State}");
+                        $"{args.User:player} used {args.Used} on {args.Target.Value}: {doorComp.State}");
                 break;
             case OperatingMode.ToggleBolts:
                 if (TryComp<DoorBoltComponent>(args.Target, out var boltsComp))
@@ -103,7 +103,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                         _doorSystem.SetBoltsDown((args.Target.Value, boltsComp), !boltsComp.BoltsDown, user: args.User, predicted: true);
                         _adminLogger.Add(LogType.Action,
                             LogImpact.Medium,
-                            $"{ToPrettyString(args.User):player} used {ToPrettyString(args.Used)} on {ToPrettyString(args.Target.Value)} to {(boltsComp.BoltsDown ? "" : "un")}bolt it");
+                            $"{args.User:player} used {args.Used} on {args.Target.Value} to {(boltsComp.BoltsDown ? "" : "un")}bolt it");
                     }
                 }
 
@@ -114,7 +114,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                     _airlock.SetEmergencyAccess((args.Target.Value, airlockComp), !airlockComp.EmergencyAccess, user: args.User, predicted: true);
                     _adminLogger.Add(LogType.Action,
                         LogImpact.Medium,
-                        $"{ToPrettyString(args.User):player} used {ToPrettyString(args.Used)} on {ToPrettyString(args.Target.Value)} to set emergency access {(airlockComp.EmergencyAccess ? "on" : "off")}");
+                        $"{args.User:player} used {args.Used} on {args.Target.Value} to set emergency access {(airlockComp.EmergencyAccess ? "on" : "off")}");
                 }
 
                 break;
@@ -128,7 +128,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                     _audio.PlayLocal(soundToPlay, args.Target.Value, args.User);
                     _adminLogger.Add(LogType.Action,
                         LogImpact.Medium,
-                        $"{ToPrettyString(args.User):player} used {ToPrettyString(args.Used)} on {ToPrettyString(args.Target.Value)} to {(eletrifiedComp.Enabled ? "" : "un")}electrify it");
+                        $"{args.User:player} used {args.Used} on {args.Target.Value} to {(eletrifiedComp.Enabled ? "" : "un")}electrify it");
                 }
 
                 break;

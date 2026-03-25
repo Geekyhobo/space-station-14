@@ -82,7 +82,7 @@ public sealed partial class AnchorableSystem : EntitySystem
             return;
 
         // Log unanchor attempt (server only)
-        _adminLogger.Add(LogType.Anchor, LogImpact.Low, $"{ToPrettyString(userUid):user} is trying to unanchor {ToPrettyString(uid):entity} from {transform.Coordinates:targetlocation}");
+        _adminLogger.Add(LogType.Anchor, LogImpact.Low, $"{userUid:user} is trying to unanchor {uid:entity} from {transform.Coordinates:targetlocation}");
 
         _tool.UseTool(usingUid, userUid, uid, anchorable.Delay, usingTool.Qualities, new TryUnanchorCompletedEvent());
     }
@@ -130,7 +130,7 @@ public sealed partial class AnchorableSystem : EntitySystem
         _adminLogger.Add(
             LogType.Unanchor,
             LogImpact.Low,
-            $"{ToPrettyString(args.User):user} unanchored {ToPrettyString(uid):anchored} using {ToPrettyString(used):using}"
+            $"{args.User:user} unanchored {uid:anchored} using {used:using}"
         );
     }
 
@@ -182,7 +182,7 @@ public sealed partial class AnchorableSystem : EntitySystem
         _adminLogger.Add(
             LogType.Anchor,
             LogImpact.Low,
-            $"{ToPrettyString(args.User):user} anchored {ToPrettyString(uid):anchored} using {ToPrettyString(used):using}"
+            $"{args.User:user} anchored {uid:anchored} using {used:using}"
         );
     }
 
@@ -233,7 +233,7 @@ public sealed partial class AnchorableSystem : EntitySystem
             return;
 
         // Log anchor attempt (server only)
-        _adminLogger.Add(LogType.Anchor, LogImpact.Low, $"{ToPrettyString(userUid):user} is trying to anchor {ToPrettyString(uid):entity} to {transform.Coordinates:targetlocation}");
+        _adminLogger.Add(LogType.Anchor, LogImpact.Low, $"{userUid:user} is trying to anchor {uid:entity} to {transform.Coordinates:targetlocation}");
 
         if (TryComp<PhysicsComponent>(uid, out var anchorBody) &&
             !TileFree(transform.Coordinates, anchorBody))

@@ -12,7 +12,7 @@ namespace Content.Server.Mining;
 
 public sealed class MeteorSystem : EntitySystem
 {
-    [Dependency] private readonly IAdminLogManager _adminLog = default!;
+    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly DestructibleSystem _destructible = default!;
     [Dependency] private readonly MobThresholdSystem _mobThreshold = default!;
@@ -36,7 +36,7 @@ public sealed class MeteorSystem : EntitySystem
         {
             threshold = mobThreshold.Value;
             if (HasComp<ActorComponent>(args.OtherEntity))
-                _adminLog.Add(LogType.Action, LogImpact.High, $"{ToPrettyString(args.OtherEntity):player} was struck by meteor {ToPrettyString(uid):ent} and killed instantly.");
+                _adminLogger.Add(LogType.Action, LogImpact.High, $"{args.OtherEntity:player} was struck by meteor {uid:ent} and killed instantly.");
         }
         else if (_destructible.TryGetDestroyedAt(args.OtherEntity, out var destroyThreshold))
         {

@@ -46,7 +46,7 @@ public sealed partial class EmergencyShuttleSystem : SharedEmergencyShuttleSyste
      * Handles the escape shuttle + CentCom.
      */
 
-    [Dependency] private readonly IAdminLogManager _logger = default!;
+    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
     [Dependency] private readonly IAdminManager _admin = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
@@ -277,10 +277,10 @@ public sealed partial class EmergencyShuttleSystem : SharedEmergencyShuttleSyste
         // UHH GOOD LUCK
         if (targetGrid == null)
         {
-            _logger.Add(
+            _adminLogger.Add(
                 LogType.EmergencyShuttle,
                 LogImpact.High,
-                $"Emergency shuttle {ToPrettyString(stationUid)} unable to dock with station {ToPrettyString(stationUid)}");
+                $"Emergency shuttle {stationUid} unable to dock with station {stationUid}");
 
             return new ShuttleDockResult
             {
@@ -292,10 +292,10 @@ public sealed partial class EmergencyShuttleSystem : SharedEmergencyShuttleSyste
         ShuttleDockResultType resultType;
         if (_shuttle.TryFTLDock(stationShuttle.EmergencyShuttle.Value, shuttle, targetGrid.Value, out var config, DockTag))
         {
-            _logger.Add(
+            _adminLogger.Add(
                 LogType.EmergencyShuttle,
                 LogImpact.High,
-                $"Emergency shuttle {ToPrettyString(stationUid)} docked with stations");
+                $"Emergency shuttle {stationUid} docked with stations");
 
             resultType = _dock.IsConfigPriority(config, DockTag)
                 ? ShuttleDockResultType.PriorityDock
@@ -303,10 +303,10 @@ public sealed partial class EmergencyShuttleSystem : SharedEmergencyShuttleSyste
         }
         else
         {
-            _logger.Add(
+            _adminLogger.Add(
                 LogType.EmergencyShuttle,
                 LogImpact.High,
-                $"Emergency shuttle {ToPrettyString(stationUid)} unable to find a valid docking port for {ToPrettyString(stationUid)}");
+                $"Emergency shuttle {stationUid} unable to find a valid docking port for {stationUid}");
 
             resultType = ShuttleDockResultType.NoDock;
         }

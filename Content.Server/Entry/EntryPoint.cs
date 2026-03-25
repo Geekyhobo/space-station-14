@@ -52,7 +52,7 @@ namespace Content.Server.Entry
         [Dependency] private readonly EuiManager _euiManager = default!;
         [Dependency] private readonly GhostKickManager _ghostKick = default!;
         [Dependency] private readonly IAdminManager _admin = default!;
-        [Dependency] private readonly IAdminLogManager _adminLog = default!;
+        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
         [Dependency] private readonly IAfkManager _afk = default!;
         [Dependency] private readonly IBanManager _ban = default!;
         [Dependency] private readonly IChatManager _chatSan = default!;
@@ -125,7 +125,7 @@ namespace Content.Server.Entry
             _connection.Initialize();
             _dbManager.Init();
             _preferences.Init();
-            _adminLog.Initialize();
+            _adminLogger.Initialize();
             _nodeFactory.Initialize();
             _netResMan.Initialize();
             _ghostKick.Initialize();
