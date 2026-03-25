@@ -835,7 +835,7 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                 .ToListAsync();
         }
 
-        public async Task AddAdminLogs(List<AdminLogEventWriteData> logs)
+        public async Task AddAdminLogs(List<AdminLogEventWriteData> logs, CancellationToken cancel = default)
         {
             const int maxRetryAttempts = 5;
             var initialRetryDelay = TimeSpan.FromSeconds(5);
@@ -850,8 +850,8 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
             {
                 try
                 {
-                    await using var db = await GetDb();
-                    await using var tx = await db.DbContext.Database.BeginTransactionAsync();
+                    await using var db = await GetDb(cancel);
+                    await using var tx = await db.DbContext.Database.BeginTransactionAsync(cancel);
 
                     var headers = new List<AdminLogEvent>(logs.Count);
                     foreach (var log in logs)
@@ -869,7 +869,7 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                     }
 
                     db.DbContext.AdminLogEvent.AddRange(headers);
-                    await db.DbContext.SaveChangesAsync();
+                    await db.DbContext.SaveChangesAsync(cancel);
 
                     for (var i = 0; i < headers.Count; i++)
                     {
@@ -890,7 +890,7 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                             .Where(d => dimKeys.Select(k => k.ServerId).Distinct().Contains(d.ServerId)
                                      && dimKeys.Select(k => k.RoundId).Distinct().Contains(d.RoundId)
                                      && dimKeys.Select(k => k.EntityUid).Distinct().Contains(d.EntityUid))
-                            .ToDictionaryAsync(d => (d.ServerId, d.RoundId, d.EntityUid));
+                            .ToDictionaryAsync(d => (d.ServerId, d.RoundId, d.EntityUid), cancel);
 
                     for (var i = 0; i < logs.Count; i++)
                     {
@@ -962,8 +962,8 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                             }
                         }
                     }
-                    await db.DbContext.SaveChangesAsync();
-                    await tx.CommitAsync();
+                    await db.DbContext.SaveChangesAsync(cancel);
+                    await tx.CommitAsync(cancel);
                     _opsLog.Debug($"Successfully saved {logs.Count} admin logs.");
                     break;
                 }
@@ -978,7 +978,7 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                     }
 
                     _opsLog.Warning($"Retrying in {retryDelay.TotalSeconds} seconds...");
-                    await Task.Delay(retryDelay);
+                    await Task.Delay(retryDelay, cancel);
 
                     retryDelay *= 2;
                 }
@@ -1113,15 +1113,20 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
 
                 if (filter.AllEntities != null)
                 {
-                    foreach (var entityUid in filter.AllEntities)
-                    {
-                        var requiredEntityEventIds = entityParticipants
-                            .Where(p => p.EntityUid == entityUid)
-                            .Select(p => p.EventId);
+                    // Use a single GROUP BY / HAVING COUNT(DISTINCT) set-intersection instead
+                    // of composing N nested semi-joins. The old approach
+                    // produced query plans that degraded rapidly with 3+ entities;
+                    // this translates to a single grouped scan the planner handles well.
+                    //
+                    // Deduplicate input and cap at 10 entities to bound query complexity.
+                    var allEntities = filter.AllEntities.Distinct().Take(10).ToArray();
+                    var requiredCount = allEntities.Length;
 
-                        matchedEntityEventIds = matchedEntityEventIds
-                            .Where(eventId => requiredEntityEventIds.Contains(eventId));
-                    }
+                    matchedEntityEventIds = entityParticipants
+                        .Where(p => allEntities.Contains(p.EntityUid!.Value))
+                        .GroupBy(p => p.EventId)
+                        .Where(g => g.Select(p => p.EntityUid).Distinct().Count() >= requiredCount)
+                        .Select(g => g.Key);
                 }
 
                 if (filter.EntityRoles != null)
@@ -1186,13 +1191,15 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
 
         public async IAsyncEnumerable<string> GetAdminLogMessages(LogFilter? filter = null)
         {
-            await using var db = await GetDb();
+            var ct = filter?.CancellationToken ?? default;
+            await using var db = await GetDb(ct);
             var query = GetAdminLogsQuery(db.DbContext, filter);
 
             await foreach (var message in query
                                .AsNoTracking()
                                .Select(log => log.Payload.Message)
-                               .AsAsyncEnumerable())
+                               .AsAsyncEnumerable()
+                               .WithCancellation(ct))
             {
                 yield return message;
             }
@@ -1200,7 +1207,8 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
 
         public async IAsyncEnumerable<SharedAdminLog> GetAdminLogs(LogFilter? filter = null)
         {
-            await using var db = await GetDb();
+            var ct = filter?.CancellationToken ?? default;
+            await using var db = await GetDb(ct);
             var query = GetAdminLogsQuery(db.DbContext, filter).AsNoTracking();
 
             var logs = await query
@@ -1214,7 +1222,7 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                     log.OccurredAt,
                     Message = log.Payload.Message
                 })
-                .ToListAsync();
+                .ToListAsync(ct);
 
             var logIds = logs.Select(log => log.Id).ToArray();
             var participants = logIds.Length == 0
@@ -1229,7 +1237,7 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                         p.EntityUid,
                         p.Role
                     })
-                    .ToListAsync();
+                    .ToListAsync(ct);
 
             var participantsByEvent = participants
                 .GroupBy(p => p.EventId)
@@ -1248,11 +1256,11 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
                 ? new Dictionary<(int ServerId, int RoundId, int EntityUid), AdminLogEntityDimension>()
                 : await db.DbContext.AdminLogEntityDimension
                     .Where(dim => serverIds.Contains(dim.ServerId) && roundIds.Contains(dim.RoundId) && entityUids.Contains(dim.EntityUid))
-                    .ToDictionaryAsync(dim => (dim.ServerId, dim.RoundId, dim.EntityUid));
+                    .ToDictionaryAsync(dim => (dim.ServerId, dim.RoundId, dim.EntityUid), ct);
 
             var servers = await db.DbContext.Server
                 .Where(server => serverIds.Contains(server.Id))
-                .ToDictionaryAsync(server => server.Id, server => server.Name);
+                .ToDictionaryAsync(server => server.Id, server => server.Name, ct);
 
             foreach (var log in logs)
             {
@@ -1275,27 +1283,29 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({players[player]}, {id}
 
         public async IAsyncEnumerable<JsonDocument> GetAdminLogsJson(LogFilter? filter = null)
         {
-            await using var db = await GetDb();
+            var ct = filter?.CancellationToken ?? default;
+            await using var db = await GetDb(ct);
             var query = GetAdminLogsQuery(db.DbContext, filter);
 
             await foreach (var json in query
                                .AsNoTracking()
                                .Select(log => log.Payload.Json)
-                               .AsAsyncEnumerable())
+                               .AsAsyncEnumerable()
+                               .WithCancellation(ct))
             {
                 yield return json;
             }
         }
 
-        public async Task<int> CountAdminLogs(int round, int? serverId = null)
+        public async Task<int> CountAdminLogs(int round, int? serverId = null, CancellationToken cancel = default)
         {
-            await using var db = await GetDb();
+            await using var db = await GetDb(cancel);
 
             var query = db.DbContext.AdminLogEvent.Where(log => log.RoundId == round);
             if (serverId != null)
                 query = query.Where(log => log.ServerId == serverId);
 
-            return await query.CountAsync();
+            return await query.CountAsync(cancel);
         }
 
         #endregion
