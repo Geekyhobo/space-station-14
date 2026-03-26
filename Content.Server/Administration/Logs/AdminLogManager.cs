@@ -478,15 +478,16 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         }
     }
 
-    public void AddStructured(
+    public override void AddStructured(
         LogType type,
         LogImpact impact,
-        string message,
-        object? payload,
+        ref LogStringHandler handler,
+        object? payload = null,
         IReadOnlyCollection<Guid>? players = null,
         IReadOnlyCollection<AdminLogEntityRef>? entities = null,
         IReadOnlyDictionary<Guid, AdminLogEntityRole>? playerRoles = null)
     {
+        var message = handler.ToStringAndClear();
         if (!Enabled)
             return;
 
@@ -518,7 +519,24 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         {
             foreach (var entity in entities)
             {
-                AddEntity(logEntities, (int) entity.Entity, entity.Role, entity.PrototypeId, entity.EntityName);
+                var prototypeId = entity.PrototypeId;
+                var entityName = entity.EntityName;
+
+                // Auto-resolve name/prototype from the entity manager when not
+                // explicitly provided — mirrors what GetEntities() does for Add().
+                if ((prototypeId == null || entityName == null)
+                    && EntityManager.TryGetComponent<MetaDataComponent>(entity.Entity, out var meta))
+                {
+                    prototypeId ??= meta.EntityPrototype?.ID;
+                    entityName ??= meta.EntityName;
+                }
+
+                // If still unresolved (entity deleted or pre-round), tag as pre-round
+                // so the UI shows something meaningful instead of <unknown>.
+                if (entityName == null && preRound)
+                    entityName = "[PreRound]";
+
+                AddEntity(logEntities, (int) entity.Entity, entity.Role, prototypeId, entityName);
             }
         }
 
@@ -620,6 +638,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
 
      private List<AdminLogEventEntityWriteData> GetEntities(Dictionary<string, object?> values, LogType type)
     {
+        var preRound = _runLevel == GameRunLevel.PreRoundLobby;
         var entities = new List<AdminLogEventEntityWriteData>();
 
         foreach (var (key, value) in values)
@@ -628,7 +647,11 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
 
             if (value is EntityStringRepresentation rep)
             {
-                AddEntity(entities, (int) rep.Uid, role, rep.Prototype, rep.Name);
+                var name = rep.Name;
+                if (name == null && preRound)
+                    name = "[PreRound]";
+
+                AddEntity(entities, (int) rep.Uid, role, rep.Prototype, name);
             }
         }
 
@@ -651,7 +674,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
             case LogType.HitScanHit:
             case LogType.Electrocution:
             case LogType.ThrowHit:
-                if (ContainsAny(key, "attacker", "source", "shooter", "thrower", "actor", "user"))
+                if (ContainsAny(key, "attacker", "source", "shooter", "thrower", "actor", "user", "player"))
                     return AdminLogEntityRole.Actor;
                 if (ContainsAny(key, "victim", "target"))
                     return AdminLogEntityRole.Victim;
@@ -663,7 +686,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
             case LogType.Drop:
             case LogType.Throw:
             case LogType.Landed:
-                if (ContainsAny(key, "actor", "user", "thrower"))
+                if (ContainsAny(key, "actor", "user", "player", "thrower"))
                     return AdminLogEntityRole.Actor;
                 if (ContainsAny(key, "item", "thrown", "target"))
                     return AdminLogEntityRole.Target;
@@ -672,11 +695,11 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
                 break;
         }
 
-        if (ContainsAny(key, "actor", "user", "attacker"))
+        if (ContainsAny(key, "actor", "user", "player", "attacker"))
             return AdminLogEntityRole.Actor;
         if (key.Contains("target"))
             return AdminLogEntityRole.Target;
-        if (ContainsAny(key, "tool", "weapon", "instrument", "projectile"))
+        if (ContainsAny(key, "tool", "weapon", "instrument", "projectile", "using"))
             return AdminLogEntityRole.Tool;
         if (key.Contains("victim"))
             return AdminLogEntityRole.Victim;
