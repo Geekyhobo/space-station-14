@@ -243,7 +243,7 @@ namespace Content.Server.Atmos.EntitySystems
                     if (!barotrauma.TakingDamage)
                     {
                         barotrauma.TakingDamage = true;
-                        _adminLogger.Add(LogType.Barotrauma, $"{uid:entity} started taking low pressure damage");
+                        _adminLogger.AddStructured(LogType.Barotrauma, $"{uid:entity} started taking low pressure damage");
                     }
 
                     _alertsSystem.ShowAlert(uid, barotrauma.LowPressureAlert, 2);
@@ -258,7 +258,7 @@ namespace Content.Server.Atmos.EntitySystems
                     if (!barotrauma.TakingDamage)
                     {
                         barotrauma.TakingDamage = true;
-                        _adminLogger.Add(LogType.Barotrauma, $"{uid:entity} started taking high pressure damage");
+                        _adminLogger.AddStructured(LogType.Barotrauma, $"{uid:entity} started taking high pressure damage");
                     }
 
                     _alertsSystem.ShowAlert(uid, barotrauma.HighPressureAlert, 2);
@@ -269,7 +269,7 @@ namespace Content.Server.Atmos.EntitySystems
                     if (barotrauma.TakingDamage)
                     {
                         barotrauma.TakingDamage = false;
-                        _adminLogger.Add(LogType.Barotrauma, $"{uid:entity} stopped taking pressure damage");
+                        _adminLogger.AddStructured(LogType.Barotrauma, $"{uid:entity} stopped taking pressure damage");
                     }
 
                     // Set correct alert.

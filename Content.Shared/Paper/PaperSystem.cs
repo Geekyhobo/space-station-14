@@ -202,7 +202,7 @@ public sealed class PaperSystem : EntitySystem
             if (TryComp(entity, out MetaDataComponent? meta))
                 _metaSystem.SetEntityDescription(entity, "", meta);
 
-            _adminLogger.Add(LogType.Chat,
+            _adminLogger.AddStructured(LogType.Chat,
                 LogImpact.Low,
                 $"{args.Actor:player} has written on {entity:entity} the following text: {args.Text}");
 

@@ -502,7 +502,7 @@ namespace Content.Server.Lathe
             {
                 if (TryAddToQueue(uid, recipe, args.Quantity, component))
                 {
-                    _adminLogger.Add(LogType.Action,
+                    _adminLogger.AddStructured(LogType.Action,
                         LogImpact.Low,
                         $"{args.Actor:player} queued {args.Quantity} {GetRecipeName(recipe)} at {uid:lathe}");
                 }
@@ -536,7 +536,7 @@ namespace Content.Server.Lathe
                 return;
 
             var batch = node.Value;
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Low,
                 $"{args.Actor:player} deleted a lathe job for ({batch.ItemsPrinted}/{batch.ItemsRequested}) {GetRecipeName(batch.Recipe)} at {uid:lathe}");
 
@@ -595,7 +595,7 @@ namespace Content.Server.Lathe
             if (component.CurrentRecipe == null)
                 return;
 
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Low,
                 $"{args.Actor:player} aborted printing {GetRecipeName(component.CurrentRecipe.Value)} at {uid:lathe}");
 

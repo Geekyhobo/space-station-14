@@ -42,7 +42,7 @@ public sealed class GasCanisterSystem : SharedGasCanisterSystem
         if (environment is not null)
             _atmos.Merge(environment, canister.Air);
 
-        _adminLogger.Add(LogType.CanisterPurged, LogImpact.Medium, $"Canister {uid:canister} purged its contents of {canister.Air:gas} into the environment.");
+        _adminLogger.AddStructured(LogType.CanisterPurged, LogImpact.Medium, $"Canister {uid:canister} purged its contents of {canister.Air:gas} into the environment.");
         canister.Air.Clear();
     }
 

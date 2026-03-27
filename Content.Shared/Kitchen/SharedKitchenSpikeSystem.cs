@@ -241,7 +241,7 @@ public sealed class SharedKitchenSpikeSystem : EntitySystem
             // normally medium severity, but for humanoids high severity, so new players get relay'd to admin alerts.
             var logSeverity = HasComp<HumanoidProfileComponent>(args.Target) ? LogImpact.High : LogImpact.Medium;
 
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 logSeverity,
                 $"{args.User:user} put {args.Target:target} on the {ent:spike}");
 
@@ -266,7 +266,7 @@ public sealed class SharedKitchenSpikeSystem : EntitySystem
                 args.Target.Value,
                 ent);
 
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Medium,
                 $"{args.User:user} took {args.Target:target} off the {ent:spike}");
 
@@ -318,7 +318,7 @@ public sealed class SharedKitchenSpikeSystem : EntitySystem
 
             var logSeverity = HasComp<HumanoidProfileComponent>(args.Target) ? LogImpact.Extreme : LogImpact.High;
 
-            _adminLogger.Add(LogType.Gib,
+            _adminLogger.AddStructured(LogType.Gib,
                 logSeverity,
                 $"{args.User:user} finished butchering {args.Target:target} on the {ent:spike}");
         }
@@ -329,7 +329,7 @@ public sealed class SharedKitchenSpikeSystem : EntitySystem
             _damageableSystem.ChangeDamage(args.Target.Value, ent.Comp.ButcherDamage, true);
 
             // Log severity for damaging other entities is normally medium.
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Medium,
                 $"{args.User:user} butchered {args.Target:target} on the {ent:spike}");
         }

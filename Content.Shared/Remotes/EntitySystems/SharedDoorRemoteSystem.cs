@@ -91,7 +91,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
         {
             case OperatingMode.OpenClose:
                 if (_doorSystem.TryToggleDoor(args.Target.Value, doorComp, user: args.User, predicted: true))
-                    _adminLogger.Add(LogType.Action,
+                    _adminLogger.AddStructured(LogType.Action,
                         LogImpact.Medium,
                         $"{args.User:player} used {args.Used} on {args.Target.Value}: {doorComp.State}");
                 break;
@@ -101,7 +101,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                     if (!boltsComp.BoltWireCut)
                     {
                         _doorSystem.SetBoltsDown((args.Target.Value, boltsComp), !boltsComp.BoltsDown, user: args.User, predicted: true);
-                        _adminLogger.Add(LogType.Action,
+                        _adminLogger.AddStructured(LogType.Action,
                             LogImpact.Medium,
                             $"{args.User:player} used {args.Used} on {args.Target.Value} to {(boltsComp.BoltsDown ? "" : "un")}bolt it");
                     }
@@ -112,7 +112,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                 if (airlockComp != null)
                 {
                     _airlock.SetEmergencyAccess((args.Target.Value, airlockComp), !airlockComp.EmergencyAccess, user: args.User, predicted: true);
-                    _adminLogger.Add(LogType.Action,
+                    _adminLogger.AddStructured(LogType.Action,
                         LogImpact.Medium,
                         $"{args.User:player} used {args.Used} on {args.Target.Value} to set emergency access {(airlockComp.EmergencyAccess ? "on" : "off")}");
                 }
@@ -126,7 +126,7 @@ public abstract class SharedDoorRemoteSystem : EntitySystem
                         ? eletrifiedComp.AirlockElectrifyEnabled
                         : eletrifiedComp.AirlockElectrifyDisabled;
                     _audio.PlayLocal(soundToPlay, args.Target.Value, args.User);
-                    _adminLogger.Add(LogType.Action,
+                    _adminLogger.AddStructured(LogType.Action,
                         LogImpact.Medium,
                         $"{args.User:player} used {args.Used} on {args.Target.Value} to {(eletrifiedComp.Enabled ? "" : "un")}electrify it");
                 }

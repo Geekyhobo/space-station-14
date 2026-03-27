@@ -212,7 +212,7 @@ public sealed class ChangelingClonerSystem : EntitySystem
         if (!_prototype.Resolve(ent.Comp.Settings, out var settings))
             return;
 
-        _adminLogger.Add(LogType.Identity,
+        _adminLogger.AddStructured(LogType.Identity,
             $"{user} is using {ent.Owner} to draw DNA from {target}.");
 
         // Make a copy of the target on a paused map, so that we can apply their components later.
@@ -255,7 +255,7 @@ public sealed class ChangelingClonerSystem : EntitySystem
         if (!Exists(ent.Comp.ClonedBackup))
             return; // the entity is likely out of PVS range on the client
 
-        _adminLogger.Add(LogType.Identity,
+        _adminLogger.AddStructured(LogType.Identity,
             $"{user} is using {ent.Owner} to inject DNA into {target} changing their identity to {ent.Comp.ClonedBackup.Value}.");
 
         // Do the actual transformation.

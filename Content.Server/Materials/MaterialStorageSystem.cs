@@ -112,7 +112,7 @@ public sealed class MaterialStorageSystem : SharedMaterialStorageSystem
         // Logging
         TryComp<StackComponent>(toInsert, out var stack);
         var count = stack?.Count ?? 1;
-        _adminLogger.Add(LogType.Action,
+        _adminLogger.AddStructured(LogType.Action,
             LogImpact.Low,
             $"{user:player} inserted {count} {toInsert:inserted} into {receiver:receiver}");
         return true;

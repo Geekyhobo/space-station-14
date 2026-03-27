@@ -73,7 +73,7 @@ public abstract class SharedHandLabelerSystem : EntitySystem
         _popupSystem.PopupClient(Loc.GetString("hand-labeler-successfully-applied"), user, user);
 
         // Log labeling
-        _adminLogger.Add(LogType.Action, LogImpact.Low,
+        _adminLogger.AddStructured(LogType.Action, LogImpact.Low,
             $"{user:user} labeled {target:target} with {ent:labeler}");
     }
 
@@ -85,7 +85,7 @@ public abstract class SharedHandLabelerSystem : EntitySystem
         _popupSystem.PopupClient(Loc.GetString("hand-labeler-successfully-removed"), user, user);
 
         // Log labeling
-        _adminLogger.Add(LogType.Action, LogImpact.Low,
+        _adminLogger.AddStructured(LogType.Action, LogImpact.Low,
             $"{user:user} removed label from {target:target} with {uid:labeler}");
     }
 
@@ -140,7 +140,7 @@ public abstract class SharedHandLabelerSystem : EntitySystem
         Dirty(uid, handLabeler);
 
         // Log label change
-        _adminLogger.Add(LogType.Action, LogImpact.Low,
+        _adminLogger.AddStructured(LogType.Action, LogImpact.Low,
             $"{args.Actor:user} set {uid:labeler} to apply label \"{handLabeler.AssignedLabel}\"");
     }
 

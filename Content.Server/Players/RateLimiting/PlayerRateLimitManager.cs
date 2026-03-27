@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Content.Server.Administration.Logs;
 using Content.Shared.Database;
 using Content.Shared.Players.RateLimiting;
@@ -58,7 +58,7 @@ public sealed class PlayerRateLimitManager : SharedPlayerRateLimitManager
         if (!datum.Announced)
         {
             registration.Registration.PlayerLimitedAction?.Invoke(player);
-            _adminLogger.Add(
+            _adminLogger.AddStructured(
                 registration.Registration.AdminLogType,
                 LogImpact.Medium,
                 $"Player {player} breached '{key}' rate limit ");

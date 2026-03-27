@@ -42,7 +42,7 @@ public abstract class SharedWiresSystem : EntitySystem
         if (!TogglePanel(uid, panel, !panel.Open, args.User))
             return;
 
-        _adminLogger.Add(LogType.Action, LogImpact.Low, $"{args.User:user} screwed {uid:target}'s maintenance panel {(panel.Open ? "open" : "closed")}");
+        _adminLogger.AddStructured(LogType.Action, LogImpact.Low, $"{args.User:user} screwed {uid:target}'s maintenance panel {(panel.Open ? "open" : "closed")}");
 
         var sound = panel.Open ? panel.ScrewdriverOpenSound : panel.ScrewdriverCloseSound;
         Audio.PlayPredicted(sound, uid, args.User);
@@ -68,7 +68,7 @@ public abstract class SharedWiresSystem : EntitySystem
             return;
         }
 
-        _adminLogger.Add(LogType.Action, LogImpact.Low,
+        _adminLogger.AddStructured(LogType.Action, LogImpact.Low,
             $"{args.User:user} is screwing {ent:target}'s {(ent.Comp.Open ? "open" : "closed")} maintenance panel at {Transform(ent).Coordinates:targetlocation}");
         args.Handled = true;
     }

@@ -261,7 +261,7 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
             _adminLogger.AddStructured(
                 LogType.Explosion,
                 LogImpact.High,
-                $"{ToPrettyString(uid):entity} exploded ({typeId}) at Pos:{(posFound ? $"{gridPos:coordinates}" : "[Grid or Map not found]")} with intensity {totalIntensity} slope {slope}",
+                $"{uid:entity} exploded ({typeId}) at Pos:{(posFound ? $"{gridPos:coordinates}" : "[Grid or Map not found]")} with intensity {totalIntensity} slope {slope}",
                 JsonSerializer.SerializeToDocument(new
                 {
                     explosive = (int) uid,
@@ -292,7 +292,7 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
                 _adminLogger.AddStructured(
                     LogType.Explosion,
                     logImpact,
-                    $"{ToPrettyString(user.Value):user} caused {ToPrettyString(uid):entity} to explode ({typeId}) at Pos:{gridPos:coordinates} with intensity {totalIntensity} slope {slope}",
+                    $"{user.Value:user} caused {uid:entity} to explode ({typeId}) at Pos:{gridPos:coordinates} with intensity {totalIntensity} slope {slope}",
                     JsonSerializer.SerializeToDocument(new
                     {
                         actor = (int) user.Value,
@@ -313,7 +313,7 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
                 _adminLogger.AddStructured(
                     LogType.Explosion,
                     logImpact,
-                    $"{ToPrettyString(user.Value):user} caused {ToPrettyString(uid):entity} to explode ({typeId}) at Pos:[Grid or Map not found] with intensity {totalIntensity} slope {slope}",
+                    $"{user.Value:user} caused {uid:entity} to explode ({typeId}) at Pos:[Grid or Map not found] with intensity {totalIntensity} slope {slope}",
                     JsonSerializer.SerializeToDocument(new
                     {
                         actor = (int) user.Value,

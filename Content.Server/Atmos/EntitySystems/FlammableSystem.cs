@@ -313,7 +313,7 @@ namespace Content.Server.Atmos.EntitySystems
             if (!flammable.OnFire || !flammable.CanExtinguish)
                 return;
 
-            _adminLogger.Add(LogType.Flammable, $"{uid:entity} stopped being on fire damage");
+            _adminLogger.AddStructured(LogType.Flammable, $"{uid:entity} stopped being on fire damage");
             flammable.OnFire = false;
             flammable.FireStacks = 0;
 
@@ -339,9 +339,9 @@ namespace Content.Server.Atmos.EntitySystems
             if (flammable.FireStacks > 0 && !flammable.OnFire)
             {
                 if (ignitionSourceUser != null)
-                    _adminLogger.Add(LogType.Flammable, $"{uid:target} set on fire by {ignitionSourceUser.Value:actor} with {ignitionSource:tool}");
+                    _adminLogger.AddStructured(LogType.Flammable, $"{uid:target} set on fire by {ignitionSourceUser.Value:actor} with {ignitionSource:tool}");
                 else
-                    _adminLogger.Add(LogType.Flammable, $"{uid:target} set on fire by {ignitionSource:actor}");
+                    _adminLogger.AddStructured(LogType.Flammable, $"{uid:target} set on fire by {ignitionSource:actor}");
                 flammable.OnFire = true;
 
                 var extinguished = new IgnitedEvent();

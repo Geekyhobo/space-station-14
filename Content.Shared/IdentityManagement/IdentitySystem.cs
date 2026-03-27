@@ -170,7 +170,7 @@ public sealed class IdentitySystem : EntitySystem
 
         _metaData.SetEntityName(ident, name);
 
-        _adminLogger.Add(LogType.Identity, LogImpact.Medium, $"{ent} changed identity to {name}");
+        _adminLogger.AddStructured(LogType.Identity, LogImpact.Medium, $"{ent} changed identity to {name}");
         var identityChangedEvent = new IdentityChangedEvent(ent, ident);
         RaiseLocalEvent(ent, ref identityChangedEvent);
         SetIdentityCriminalIcon(ent);

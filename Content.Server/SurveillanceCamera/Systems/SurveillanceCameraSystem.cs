@@ -150,7 +150,7 @@ public sealed class SurveillanceCameraSystem : SharedSurveillanceCameraSystem
         component.NameSet = true;
         Dirty(uid, component);
         UpdateSetupInterface(uid, component);
-        _adminLogger.Add(LogType.Chat, LogImpact.Low, $"{args.Actor} set the name of {uid} to \"{args.Name}.\"");
+        _adminLogger.AddStructured(LogType.Chat, LogImpact.Low, $"{args.Actor} set the name of {uid} to \"{args.Name}.\"");
     }
 
     private void OnSetNetwork(EntityUid uid, SurveillanceCameraComponent component,

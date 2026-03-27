@@ -48,7 +48,7 @@ public sealed class DamageOtherOnHitSystem : SharedDamageOtherOnHitSystem
             _adminLogger.AddStructured(
                 LogType.ThrowHit,
                 LogImpact.Medium,
-                $"{ToPrettyString(args.Target):target} received {dmg.GetTotal():damage} damage from collision",
+                $"{args.Target:target} received {dmg.GetTotal():damage} damage from collision",
                 JsonSerializer.SerializeToDocument(new
                 {
                     source = (int) uid,

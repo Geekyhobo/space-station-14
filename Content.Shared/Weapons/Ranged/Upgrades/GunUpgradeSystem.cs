@@ -89,7 +89,7 @@ public sealed class GunUpgradeSystem : EntitySystem
         _gun.RefreshModifiers(ent.Owner);
         args.Handled = _container.Insert(args.Used, _container.GetContainer(ent, ent.Comp.UpgradesContainerId));
 
-        _adminLogger.Add(LogType.Action, LogImpact.Low, $"{args.User:player} inserted gun upgrade {args.Used} into {ent.Owner}.");
+        _adminLogger.AddStructured(LogType.Action, LogImpact.Low, $"{args.User:player} inserted gun upgrade {args.Used} into {ent.Owner}.");
     }
 
     private void OnFireRateRefresh(Entity<GunUpgradeFireRateComponent> ent, ref GunRefreshModifiersEvent args)

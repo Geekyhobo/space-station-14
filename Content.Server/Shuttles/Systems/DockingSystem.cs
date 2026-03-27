@@ -376,7 +376,7 @@ namespace Content.Server.Shuttles.Systems
                 return;
             }
 
-            _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{args.Actor:player} requested undocking of {dockEnt.Value:entity}");
+            _adminLogger.AddStructured(LogType.Action, LogImpact.Medium, $"{args.Actor:player} requested undocking of {dockEnt.Value:entity}");
 
             Undock(dock);
         }
@@ -424,7 +424,7 @@ namespace Content.Server.Shuttles.Systems
                 return;
             }
 
-            _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{args.Actor:player} requested docking of {ourDock.Value:entity} with {targetDock.Value:target}");
+            _adminLogger.AddStructured(LogType.Action, LogImpact.Medium, $"{args.Actor:player} requested docking of {ourDock.Value:entity} with {targetDock.Value:target}");
 
             Dock((ourDock.Value, ourDockComp), (targetDock.Value, targetDockComp));
         }

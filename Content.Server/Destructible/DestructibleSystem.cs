@@ -83,13 +83,13 @@ namespace Content.Server.Destructible
 
                     if (args.Origin != null)
                     {
-                        _adminLogger.Add(LogType.Damaged,
+                        _adminLogger.AddStructured(LogType.Damaged,
                             logImpact,
                             $"{args.Origin.Value:actor} caused {uid:subject} to trigger [{triggeredBehaviors}]");
                     }
                     else
                     {
-                        _adminLogger.Add(LogType.Damaged,
+                        _adminLogger.AddStructured(LogType.Damaged,
                             logImpact,
                             $"Unknown damage source caused {uid:subject} to trigger [{triggeredBehaviors}]");
                     }

@@ -119,7 +119,7 @@ public sealed class InnerBodyAnomalySystem : SharedInnerBodyAnomalySystem
 
             _popup.PopupEntity(message, ent, ent, PopupType.MediumCaution);
 
-            _adminLogger.Add(LogType.Anomaly,LogImpact.Medium,$"{ent} became anomaly host.");
+            _adminLogger.AddStructured(LogType.Anomaly,LogImpact.Medium,$"{ent} became anomaly host.");
         }
         Dirty(ent);
     }
@@ -230,7 +230,7 @@ public sealed class InnerBodyAnomalySystem : SharedInnerBodyAnomalySystem
 
             _popup.PopupEntity(message, ent, ent, PopupType.MediumCaution);
 
-            _adminLogger.Add(LogType.Anomaly, LogImpact.Medium,$"{ent} is no longer a host for the anomaly.");
+            _adminLogger.AddStructured(LogType.Anomaly, LogImpact.Medium,$"{ent} is no longer a host for the anomaly.");
         }
 
         ent.Comp.Injected = false;

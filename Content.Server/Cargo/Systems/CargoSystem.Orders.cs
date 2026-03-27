@@ -86,7 +86,7 @@ namespace Content.Server.Cargo.Systems
 
             // Log order addition
             _audio.PlayPvs(ent.Comp.ScanSound, ent);
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Low,
                 $"{args.User:user} inserted order slip [orderId:{data.OrderId}, quantity:{data.OrderQuantity}, product:{data.ProductId}, requester:{data.Requester}, reason:{data.Reason}]");
             QueueDel(args.Used);
@@ -250,7 +250,7 @@ namespace Content.Server.Cargo.Systems
             ConsolePopup(args.Actor, Loc.GetString("cargo-console-trade-station", ("destination", MetaData(ev.FulfillmentEntity.Value).EntityName)));
 
             // Log order approval
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Low,
                 $"{player:user} approved order [orderId:{order.OrderId}, quantity:{order.OrderQuantity}, product:{order.ProductId}, requester:{order.Requester}, reason:{order.Reason}] on account {order.Account} with balance at {accountBalance}");
 
@@ -395,7 +395,7 @@ namespace Content.Server.Cargo.Systems
             }
 
             // Log order addition
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Low,
                 $"{player:user} added order [orderId:{data.OrderId}, quantity:{data.OrderQuantity}, product:{data.ProductId}, requester:{data.Requester}, reason:{data.Reason}]");
 
@@ -541,7 +541,7 @@ namespace Content.Server.Cargo.Systems
             order.Approved = true;
 
             // Log order addition
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.Low,
                 $"AddAndApproveOrder {description} added order [orderId:{order.OrderId}, quantity:{order.OrderQuantity}, product:{order.ProductId}, requester:{order.Requester}, reason:{order.Reason}]");
 

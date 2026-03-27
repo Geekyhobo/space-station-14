@@ -106,7 +106,7 @@ public abstract class SharedMaterialReclaimerSystem : EntitySystem
 
         if (user != null)
         {
-            _adminLogger.Add(LogType.Action,
+            _adminLogger.AddStructured(LogType.Action,
                 LogImpact.High,
                 $"{user.Value:player} destroyed {item} in the material reclaimer, {uid}");
         }
