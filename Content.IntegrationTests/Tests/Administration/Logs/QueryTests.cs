@@ -34,7 +34,7 @@ public sealed class QueryTests
         {
             player = sPlayers.Sessions.First();
 
-            sAdminLogSystem.Add(LogType.Unknown, $"{player.AttachedEntity:Entity} test log: {guid}");
+            sAdminLogSystem.AddStructured(LogType.Unknown, $"{player.AttachedEntity:Entity} test log: {guid}");
         });
 
         var filter = new LogFilter

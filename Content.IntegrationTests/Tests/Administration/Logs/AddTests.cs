@@ -38,7 +38,8 @@ public sealed class AddTests
         {
             var entity = sEntities.SpawnEntity(null, coordinates);
 
-            sAdminLogSystem.Add(LogType.Unknown, $"{entity:Entity} test log: {guid}");
+            sAdminLogSystem.AddStructured(LogType.Unknown, $"{entity:Entity} test log: {guid}",
+                new { entity = (int) entity });
         });
 
         await PoolManager.WaitUntil(server, async () =>
@@ -52,7 +53,6 @@ public sealed class AddTests
             {
                 var root = json.RootElement;
 
-                // camelCased automatically
                 Assert.That(root.TryGetProperty("entity", out _), Is.True);
 
                 json.Dispose();
@@ -87,7 +87,8 @@ public sealed class AddTests
         {
             var entity = sEntities.SpawnEntity(null, coordinates);
 
-            sAdminLogSystem.Add(LogType.Unknown, $"{entity} test log: {guid}");
+            sAdminLogSystem.AddStructured(LogType.Unknown, $"{entity} test log: {guid}",
+                new { entity = (int) entity, guid = guid });
         });
 
         SharedAdminLog log = default;
@@ -149,7 +150,7 @@ public sealed class AddTests
 
             for (var i = 0; i < amount; i++)
             {
-                sAdminLogSystem.Add(LogType.Unknown, $"{entity:Entity} test log.");
+                sAdminLogSystem.AddStructured(LogType.Unknown, $"{entity:Entity} test log.");
             }
         });
 
@@ -180,7 +181,8 @@ public sealed class AddTests
 
             Assert.DoesNotThrow(() =>
             {
-                sAdminLogSystem.Add(LogType.Unknown, $"{player:Player} test log.");
+                sAdminLogSystem.AddStructured(LogType.Unknown, $"{player:Player} test log.",
+                    players: new Guid[] { player.UserId });
             });
         });
 
@@ -221,7 +223,8 @@ public sealed class AddTests
 
         await server.WaitPost(() =>
         {
-            sAdminLogSystem.Add(LogType.Unknown, $"test log: {guid}");
+            sAdminLogSystem.AddStructured(LogType.Unknown, $"test log: {guid}",
+                new { guid });
         });
 
         await server.WaitPost(() =>
@@ -280,7 +283,7 @@ public sealed class AddTests
         {
             var player = sPlayers.Sessions.Single();
 
-            sAdminLogSystem.Add(LogType.Unknown, $"{player} {player} test log: {guid}");
+            sAdminLogSystem.AddStructured(LogType.Unknown, $"{player} {player} test log: {guid}");
         });
 
         await PoolManager.WaitUntil(server, async () =>
@@ -318,7 +321,7 @@ public sealed class AddTests
         {
             var player = sPlayers.Sessions.Single();
 
-            sAdminLogSystem.Add(LogType.Unknown, $"{player:first} {player:second} test log: {guid}");
+            sAdminLogSystem.AddStructured(LogType.Unknown, $"{player:first} {player:second} test log: {guid}");
         });
 
         await PoolManager.WaitUntil(server, async () =>

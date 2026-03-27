@@ -21,7 +21,7 @@ public sealed class LogWindowTest : InteractionTest
         // First, generate a new log
         var log = Server.Resolve<IAdminLogManager>();
         var guid = Guid.NewGuid();
-        await Server.WaitPost(() => log.Add(LogType.Unknown, $"{SPlayer} test log 1: {guid}"));
+        await Server.WaitPost(() => log.AddStructured(LogType.Unknown, $"{SPlayer} test log 1: {guid}"));
 
         // Click the admin button in the menu bar
         await ClickWidgetControl<GameTopMenuBar, MenuButton>(nameof(GameTopMenuBar.AdminButton));
@@ -47,7 +47,7 @@ public sealed class LogWindowTest : InteractionTest
 
         // Add a new log
         guid = Guid.NewGuid();
-        await Server.WaitPost(() => log.Add(LogType.Unknown, $"{SPlayer} test log 2: {guid}"));
+        await Server.WaitPost(() => log.AddStructured(LogType.Unknown, $"{SPlayer} test log 2: {guid}"));
 
         // Update the search and refresh
         await Client.WaitPost(() => search.Text = guid.ToString());
