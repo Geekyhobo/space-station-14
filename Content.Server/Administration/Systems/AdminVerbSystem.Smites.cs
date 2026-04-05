@@ -19,7 +19,6 @@ using Content.Server.Tabletop.Components;
 using Content.Shared.Actions;
 using Content.Shared.Administration;
 using Content.Shared.Administration.Components;
-using Content.Shared.Administration.Systems;
 using Content.Shared.Atmos.Components;
 using Content.Shared.Body;
 using Content.Shared.Body.Components;
@@ -106,6 +105,8 @@ public sealed partial class AdminVerbSystem
     // All smite verbs have names so invokeverb works.
     private void AddSmiteVerbs(GetVerbsEvent<Verb> args)
     {
+        var adminSession = args.User;
+
         if (!TryComp(args.User, out ActorComponent? actor))
             return;
 
@@ -126,6 +127,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/smite.svg.192dpi.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Explode");
                 var coords = _transformSystem.GetMapCoordinates(args.Target);
                 Timer.Spawn(_gameTiming.TickPeriod,
                     () => _explosionSystem.QueueExplosion(coords, ExplosionSystem.DefaultExplosionPrototypeId,
@@ -147,6 +149,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Fun/Tabletop/chessboard.rsi"), "chessboard"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Chess");
                 _sharedGodmodeSystem.EnableGodmode(args.Target); // So they don't suffocate.
                 EnsureComp<TabletopDraggableComponent>(args.Target);
                 var xform = Transform(args.Target);
@@ -175,6 +178,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/Alerts/Fire/fire.png")),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "SetAlight");
                     // Fuck you. Burn Forever.
                     flammable.FireStacks = flammable.MaximumFireStacks;
                     _flammableSystem.Ignite(args.Target, args.User);
@@ -198,6 +202,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Mobs/Animals/monkey.rsi"), "monkey"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Monkeyify");
                 _polymorphSystem.PolymorphEntity(args.Target, "AdminMonkeySmite");
             },
             Impact = LogImpact.Extreme,
@@ -213,6 +218,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Structures/Piping/disposal.rsi"), "disposal"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "GarbageCan");
                 _polymorphSystem.PolymorphEntity(args.Target, "AdminDisposalsSmite");
             },
             Impact = LogImpact.Extreme,
@@ -231,6 +237,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Clothing/Hands/Gloves/Color/yellow.rsi"), "icon"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "Electrocute");
                     var totalDamage = _damageable.GetTotalDamage((args.Target, damageable));
                     int damageToDeal;
                     if (!_mobThresholdSystem.TryGetThresholdForState(args.Target, MobState.Critical, out var criticalThreshold))
@@ -279,6 +286,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Consumable/Food/Baked/pie.rsi"), "plain-slice"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "CreamPie");
                     _creamPieSystem.SetCreamPied(args.Target, creamPied, true);
                 },
                 Impact = LogImpact.Extreme,
@@ -297,6 +305,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Fluids/tomato_splat.rsi"), "puddle-1"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "RemoveBlood");
                     _bloodstreamSystem.SpillAllSolutions((args.Target, bloodstream));
                     var xform = Transform(args.Target);
                     _popupSystem.PopupEntity(Loc.GetString("admin-smite-remove-blood-self"), args.Target,
@@ -320,6 +329,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Fluids/vomit_toxin.rsi"), "vomit_toxin-1"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "VomitOrgans");
                     _vomitSystem.Vomit(args.Target, -1000, -1000); // You feel hollow!
                     _bodySystem.TryGetOrgansWithComponent<TransformComponent>((args.Target, body), out var organs);
                     var baseXform = Transform(args.Target);
@@ -349,6 +359,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/remove-hands.png")),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "RemoveHands");
                     var baseXform = Transform(args.Target);
                     var parts = new HashSet<ProtoId<OrganCategoryPrototype>>() { "HandRight", "HandLeft" };
                     _bodySystem.TryGetOrgansWithComponent<OrganComponent>((args.Target, body), out var organs);
@@ -374,6 +385,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/remove-hand.png")),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "RemoveHand");
                     var baseXform = Transform(args.Target);
                     var parts = new HashSet<ProtoId<OrganCategoryPrototype>>() { "HandRight", "HandLeft" };
                     _bodySystem.TryGetOrgansWithComponent<OrganComponent>((args.Target, body), out var organs);
@@ -400,6 +412,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Mobs/Species/Human/organs.rsi"), "stomach"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "RemoveStomach");
                     _bodySystem.TryGetOrgansWithComponent<StomachComponent>((args.Target, body), out var organs);
                     foreach (var entity in organs)
                     {
@@ -422,6 +435,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Mobs/Species/Human/organs.rsi"), "lung-r"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "RemoveLungs");
                     _bodySystem.TryGetOrgansWithComponent<LungComponent>((args.Target, body), out var organs);
                     foreach (var entity in organs)
                     {
@@ -447,6 +461,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Fun/Balls/basketball.rsi"), "icon"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "Pinball");
                     var xform = Transform(args.Target);
                     var fixtures = Comp<FixturesComponent>(args.Target);
                     _transformSystem.Unanchor(args.Target, xform); // Just in case.
@@ -482,6 +497,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/eject.svg.192dpi.png")),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "Yeet");
                     var xform = Transform(args.Target);
                     var fixtures = Comp<FixturesComponent>(args.Target);
                     _transformSystem.Unanchor(args.Target); // Just in case.
@@ -514,6 +530,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Consumable/Food/Baked/bread.rsi"), "plain"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "BecomeBread");
                 _polymorphSystem.PolymorphEntity(args.Target, "AdminBreadSmite");
             },
             Impact = LogImpact.Extreme,
@@ -529,6 +546,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Mobs/Animals/mouse.rsi"), "icon-0"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "BecomeMouse");
                 _polymorphSystem.PolymorphEntity(args.Target, "AdminMouseSmite");
             },
             Impact = LogImpact.Extreme,
@@ -546,6 +564,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/gavel.svg.192dpi.png")),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "GhostKick");
                     _ghostKickManager.DoDisconnect(actorComponent.PlayerSession.Channel, "Smitten.");
                 },
                 Impact = LogImpact.Extreme,
@@ -565,6 +584,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Clothing/Head/Hats/catears.rsi"), "icon"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "Nyanify");
                     var ears = Spawn("ClothingHeadHatCatEars", Transform(args.Target).Coordinates);
                     EnsureComp<UnremoveableComponent>(ears);
                     _inventorySystem.TryUnequip(args.Target, "head", true, true, false, inventory);
@@ -583,6 +603,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Misc/killsign.rsi"), "icon"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "KillSign");
                     EnsureComp<KillSignComponent>(args.Target, out var comp);
                     comp.HideFromOwner = false; // We set it to false anyway, in case the hidden smite was used beforehand.
                     Dirty(args.Target, comp);
@@ -600,6 +621,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Misc/killsign.rsi"), "icon-hidden"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "HiddenKillSign");
                     EnsureComp<KillSignComponent>(args.Target, out var comp);
                     comp.HideFromOwner = true;
                     Dirty(args.Target, comp);
@@ -619,6 +641,7 @@ public sealed partial class AdminVerbSystem
 
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "Cluwne");
                     EnsureComp<CluwneComponent>(args.Target);
                 },
                 Impact = LogImpact.Extreme,
@@ -634,6 +657,7 @@ public sealed partial class AdminVerbSystem
                 Icon = new SpriteSpecifier.Rsi(new("/Textures/Clothing/Uniforms/Jumpskirt/janimaid.rsi"), "icon"),
                 Act = () =>
                 {
+                    AuditSmite(adminSession, args.Target, "Maid");
                     _outfit.SetOutfit(args.Target, "JanitorMaidGear", (_, clothing) =>
                     {
                         if (HasComp<ClothingComponent>(clothing))
@@ -655,6 +679,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Interface/Misc/pointing.rsi"), "pointing"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "AngerPointingArrows");
                 EnsureComp<PointingArrowAngeringComponent>(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -670,6 +695,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Materials/materials.rsi"), "ash"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Dust");
                 QueueDel(args.Target);
                 Spawn("Ash", Transform(args.Target).Coordinates);
                 _popupSystem.PopupEntity(Loc.GetString("admin-smite-turned-ash-other", ("name", args.Target)), args.Target, PopupType.LargeCaution);
@@ -687,6 +713,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/Misc/buffering_smite_icon.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Buffering");
                 EnsureComp<BufferingComponent>(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -702,6 +729,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Fun/Instruments/h_synthesizer.rsi"), "supersynth"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "BecomeInstrument");
                 _polymorphSystem.PolymorphEntity(args.Target, "AdminInstrumentSmite");
             },
             Impact = LogImpact.Extreme,
@@ -717,6 +745,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Structures/Machines/gravity_generator.rsi"), "off"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "RemoveGravity");
                 var grav = EnsureComp<MovementIgnoreGravityComponent>(args.Target);
                 grav.Weightless = true;
 
@@ -740,6 +769,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Objects/Fun/Plushies/lizard.rsi"), "icon"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "ReptilianSpeciesSwap");
                 _polymorphSystem.PolymorphEntity(args.Target, LizardSmite);
             },
             Impact = LogImpact.Extreme,
@@ -755,6 +785,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new ("/Textures/Objects/Fun/Balls/tennisball.rsi"), "icon"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "VulpkaninSpeciesSwap");
                 _polymorphSystem.PolymorphEntity(args.Target, VulpkaninSmite);
             },
             Impact = LogImpact.Extreme,
@@ -770,6 +801,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("/Textures/Structures/Storage/closet.rsi"), "generic"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "LockerStuff");
                 var xform = Transform(args.Target);
                 var locker = Spawn("ClosetMaintenance", xform.Coordinates);
                 if (TryComp<EntityStorageComponent>(locker, out var storage))
@@ -793,6 +825,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/refresh.svg.192dpi.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Headstand");
                 EnsureComp<HeadstandComponent>(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -808,6 +841,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/zoom.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "ZoomIn");
                 var eye = EnsureComp<ContentEyeComponent>(args.Target);
                 _eyeSystem.SetZoom(args.Target, eye.TargetZoom * 0.2f, ignoreLimits: true);
             },
@@ -824,6 +858,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/flip.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "FlipEye");
                 var eye = EnsureComp<ContentEyeComponent>(args.Target);
                 _eyeSystem.SetZoom(args.Target, eye.TargetZoom * -1, ignoreLimits: true);
             },
@@ -840,6 +875,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/run-walk-swap.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "RunWalkSwap");
                 var movementSpeed = EnsureComp<MovementSpeedModifierComponent>(args.Target);
                 (movementSpeed.BaseSprintSpeed, movementSpeed.BaseWalkSpeed) = (movementSpeed.BaseWalkSpeed, movementSpeed.BaseSprintSpeed);
 
@@ -861,6 +897,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/help-backwards.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "SpeakBackwards");
                 EnsureComp<BackwardsAccentComponent>(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -876,6 +913,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/Actions/disarm.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "DisarmProne");
                 EnsureComp<DisarmProneComponent>(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -891,6 +929,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/AdminActions/super_speed.png")),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "SuperSpeed");
                 var movementSpeed = EnsureComp<MovementSpeedModifierComponent>(args.Target);
                 _movementSpeedModifierSystem?.ChangeBaseSpeed(args.Target, 400, 8000, 40, movementSpeed);
 
@@ -911,6 +950,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Structures/Furniture/Tables/glass.rsi"), "full"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "SuperBonkLite");
                 _superBonkSystem.StartSuperBonk(args.Target, stopWhenDead: true);
             },
             Impact = LogImpact.Extreme,
@@ -926,6 +966,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Structures/Furniture/Tables/generic.rsi"), "full"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "SuperBonk");
                 _superBonkSystem.StartSuperBonk(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -941,6 +982,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Objects/Specific/Janitorial/soap.rsi"), "omega-4"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "SuperSlip");
                 var hadSlipComponent = EnsureComp(args.Target, out SlipperyComponent slipComponent);
                 if (!hadSlipComponent)
                 {
@@ -968,6 +1010,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Interface/Actions/voice-mask.rsi"), "icon"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "OmniAccent");
                 EnsureComp<BarkAccentComponent>(args.Target);
                 EnsureComp<BleatingAccentComponent>(args.Target);
                 EnsureComp<FrenchAccentComponent>(args.Target);
@@ -999,6 +1042,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Mobs/Animals/snake.rsi"), "icon"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "Crawler");
                 EnsureComp<WormComponent>(args.Target);
             },
             Impact = LogImpact.Extreme,
@@ -1014,6 +1058,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Interface/Actions/actions_borg.rsi"), "state-laws"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "SiliconLawsBound");
                 var userInterfaceComp = EnsureComp<UserInterfaceComponent>(args.Target);
                 _uiSystem.SetUi((args.Target, userInterfaceComp), SiliconLawsUiKey.Key, new InterfaceData(SiliconLawBoundUserInterface));
 
@@ -1045,6 +1090,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Objects/Specific/Security/target.rsi"), "target_s"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "HomingRod");
                 var speed = 25f; // It don't miss brother.
                 var distance = 350f;
                 HomingLaunchSequence(args.Target, "ImmovableRodKeepTiles", distance, speed); // todo: swap the proto for an EntityTable GetSpawns once rod rule rework
@@ -1062,6 +1108,7 @@ public sealed partial class AdminVerbSystem
             Icon = new SpriteSpecifier.Rsi(new("Objects/Specific/Security/target.rsi"), "target_c"),
             Act = () =>
             {
+                AuditSmite(adminSession, args.Target, "HomingRodSlow");
                 var speed = 5f; // slightly faster than default sprint speed 4.5
                 if (TryComp<MovementSpeedModifierComponent>(args.Target, out var movement))
                     speed = movement.CurrentSprintSpeed + 0.001f;// run
@@ -1072,6 +1119,19 @@ public sealed partial class AdminVerbSystem
             Message = string.Join(": ", homingRodSlowName, Loc.GetString("admin-smite-homing-rod-slow-description"))
         };
         args.Verbs.Add(homingRodSlow);
+    }
+
+    private void AuditSmite(EntityUid admin, EntityUid target, string smiteType)
+    {
+        if (_playerManager.TryGetSessionByEntity(admin, out var session))
+        {
+            _auditLog.LogAction(
+                session.UserId,
+                AdminAuditAction.Smite,
+                AuditSeverity.Notable,
+                $"Smited {ToPrettyString(target)} with {smiteType}",
+                targetEntity: target);
+        }
     }
 
     public void HomingLaunchSequence(EntityUid target, EntProtoId proto, float distance, float speed)
