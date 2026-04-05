@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Text.Json;
+using Content.Server.Administration.AuditLog;
 using Content.Server.Administration.Logs;
 using Content.Server.Administration.Managers;
 using Content.Server.Administration.Notes;
@@ -23,6 +25,7 @@ public sealed class PlayerPanelEui : BaseEui
     [Dependency] private readonly IPlayerManager _player = default!;
     [Dependency] private readonly EuiManager _eui = default!;
     [Dependency] private readonly IAdminLogManager _adminLogger = default!;
+    [Dependency] private readonly IAdminAuditLogManager _auditLog = default!;
 
     private readonly LocatedPlayerData _targetPlayer;
     private int? _notes;
@@ -97,6 +100,17 @@ public sealed class PlayerPanelEui : BaseEui
                 {
                     _adminLogger.AddStructured(LogType.Action,$"{Player:actor} unfroze {session.AttachedEntity:subject}");
                     _entity.RemoveComponent<AdminFrozenComponent>(session.AttachedEntity.Value);
+                    _auditLog.LogAction(
+                        Player.UserId,
+                        AdminAuditAction.Unfreeze,
+                        AuditSeverity.Notable,
+                        $"Unfroze {_targetPlayer.Username}",
+                        targetPlayerUserId: _targetPlayer.UserId.UserId,
+                        targetEntity: session.AttachedEntity.Value,
+                        payload: JsonSerializer.SerializeToDocument(new
+                        {
+                            action = "unfreeze"
+                        }));
                     SetPlayerState();
                     return;
                 }
@@ -105,11 +119,33 @@ public sealed class PlayerPanelEui : BaseEui
                 {
                     _adminLogger.AddStructured(LogType.Action,$"{Player:actor} froze and muted {session.AttachedEntity:subject}");
                     frozenSystem.FreezeAndMute(session.AttachedEntity.Value);
+                    _auditLog.LogAction(
+                        Player.UserId,
+                        AdminAuditAction.Freeze,
+                        AuditSeverity.Notable,
+                        $"Froze and muted {_targetPlayer.Username}",
+                        targetPlayerUserId: _targetPlayer.UserId.UserId,
+                        targetEntity: session.AttachedEntity.Value,
+                        payload: JsonSerializer.SerializeToDocument(new
+                        {
+                            action = "freeze_and_mute"
+                        }));
                 }
                 else
                 {
                     _adminLogger.AddStructured(LogType.Action,$"{Player:actor} froze {session.AttachedEntity:subject}");
                     _entity.EnsureComponent<AdminFrozenComponent>(session.AttachedEntity.Value);
+                    _auditLog.LogAction(
+                        Player.UserId,
+                        AdminAuditAction.Freeze,
+                        AuditSeverity.Notable,
+                        $"Froze {_targetPlayer.Username}",
+                        targetPlayerUserId: _targetPlayer.UserId.UserId,
+                        targetEntity: session.AttachedEntity.Value,
+                        payload: JsonSerializer.SerializeToDocument(new
+                        {
+                            action = "freeze"
+                        }));
                 }
                 SetPlayerState();
                 break;
