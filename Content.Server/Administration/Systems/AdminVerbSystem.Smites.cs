@@ -19,6 +19,7 @@ using Content.Server.Tabletop.Components;
 using Content.Shared.Actions;
 using Content.Shared.Administration;
 using Content.Shared.Administration.Components;
+using Content.Shared.Administration.Systems;
 using Content.Shared.Atmos.Components;
 using Content.Shared.Body;
 using Content.Shared.Body.Components;
@@ -287,7 +288,7 @@ public sealed partial class AdminVerbSystem
                 Act = () =>
                 {
                     AuditSmite(adminSession, args.Target, "CreamPie");
-                    _creamPieSystem.SetCreamPied(args.Target, creamPied, true);
+                    _creamPieSystem.SetCreamPied((args.Target, creamPied), true);
                 },
                 Impact = LogImpact.Extreme,
                 Message = string.Join(": ", creamPieName, Loc.GetString("admin-smite-creampie-description"))
