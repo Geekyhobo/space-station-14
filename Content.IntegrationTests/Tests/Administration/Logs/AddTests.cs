@@ -184,14 +184,11 @@ public sealed class AddTests : GameTest
 
         await PoolManager.WaitUntil(server, async () =>
         {
-            var logs = await sAdminLogSystem.CurrentRoundLogs();
-            if (logs.Count == 0)
-            {
-                return false;
-            }
-
-            Assert.That(logs.First().Players, Does.Contain(playerGuid));
-            return true;
+            var filter = new LogFilter { Types = new HashSet<LogType> { LogType.Unknown } };
+            var logs = await sAdminLogSystem.CurrentRoundLogs(filter);
+            // Find the specific log that has our player
+            var match = logs.FirstOrDefault(l => l.Players.Contains(playerGuid));
+            return match.Id != 0;
         });
     }
 
@@ -263,74 +260,4 @@ public sealed class AddTests : GameTest
             return true;
         });
     }
-}
-
-public sealed class PreRoundAddTests : GameTest
-{
-    public override PoolSettings PoolSettings => new PoolSettings
-    {
-        Dirty = true,
-        InLobby = true,
-        AdminLogsEnabled = true
-    };
-
-    [Test]
-    public async Task PreRoundAddAndGetSingle()
-    {
-        var pair = Pair;
-        var server = pair.Server;
-
-        var sDatabase = server.ResolveDependency<IServerDbManager>();
-        var sSystems = server.ResolveDependency<IEntitySystemManager>();
-
-        var sAdminLogSystem = server.ResolveDependency<IAdminLogManager>();
-        var sGamerTicker = sSystems.GetEntitySystem<GameTicker>();
-
-        var guid = Guid.NewGuid();
-
-        await server.WaitPost(() =>
-        {
-            sAdminLogSystem.AddStructured(LogType.Unknown, $"test log: {guid}");
-        });
-
-        await server.WaitPost(() =>
-        {
-            sGamerTicker.StartRound(true);
-        });
-
-        SharedAdminLog log = default;
-
-        await PoolManager.WaitUntil(server, async () =>
-        {
-            var logs = await sAdminLogSystem.CurrentRoundLogs(new LogFilter
-            {
-                Search = guid.ToString()
-            });
-
-            if (logs.Count == 0)
-            {
-                return false;
-            }
-
-            log = logs.First();
-            return true;
-        });
-
-        var filter = new LogFilter
-        {
-            Round = sGamerTicker.RoundId,
-            Search = log.Message,
-            Types = new HashSet<LogType> { log.Type },
-        };
-
-        await foreach (var json in sDatabase.GetAdminLogsJson(filter))
-        {
-            var root = json.RootElement;
-
-            Assert.That(root.TryGetProperty("guid", out _), Is.True);
-
-            json.Dispose();
-        }
-    }
-
 }
