@@ -409,7 +409,7 @@ public sealed partial class AdminLogManager : SharedAdminLogManager, IAdminLogMa
         }
     }
 
-    public override void AddStructured(
+    public override void Add(
         LogType type,
         LogImpact impact,
         ref LogStringHandler handler,

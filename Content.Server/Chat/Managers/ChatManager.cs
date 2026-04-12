@@ -120,7 +120,7 @@ internal sealed partial class ChatManager : IChatManager
         ChatMessageToAll(ChatChannel.Server, message, wrappedMessage, EntityUid.Invalid, hideChat: false, recordReplay: true, colorOverride: colorOverride);
         _sawmill.Info(message);
 
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Chat,
             LogImpact.Low,
             $"Server announcement: {message}",
@@ -139,7 +139,8 @@ internal sealed partial class ChatManager : IChatManager
 
         if (!suppressLog)
         {
-            _adminLogger.AddStructured(
+            var recipientSemantics = AdminLogHelpers.GetSessionSemantics(player, attachedEntityRole: AdminLogEntityRole.Victim);
+            _adminLogger.Add(
                 LogType.Chat,
                 LogImpact.Low,
                 $"Server message to {player.Name}: {message}",
@@ -150,10 +151,8 @@ internal sealed partial class ChatManager : IChatManager
                     message,
                     channel = ChatChannel.Server.ToString()
                 }),
-                players: new[] { player.UserId.UserId },
-                entities: player.AttachedEntity is { Valid: true } recipient
-                    ? new[] { new AdminLogEntityRef(recipient, AdminLogEntityRole.Victim) }
-                    : null);
+                players: recipientSemantics.Players,
+                entities: recipientSemantics.Entities);
         }
     }
 
@@ -179,7 +178,7 @@ internal sealed partial class ChatManager : IChatManager
             ("adminChannelName", Loc.GetString("chat-manager-admin-channel-name")), ("message", FormattedMessage.EscapeText(message)));
 
         ChatMessageToMany(ChatChannel.Admin, message, wrappedMessage, default, false, true, clients);
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Chat,
             LogImpact.Low,
             $"Admin announcement: {message}",
@@ -243,7 +242,7 @@ internal sealed partial class ChatManager : IChatManager
         }
         var wrappedMessage = Loc.GetString("chat-manager-send-hook-ooc-wrap-message", ("senderName", sender), ("message", FormattedMessage.EscapeText(message)));
         ChatMessageToAll(ChatChannel.OOC, message, wrappedMessage, source: EntityUid.Invalid, hideChat: false, recordReplay: true);
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Chat,
             LogImpact.Low,
             $"Hook OOC from {sender}: {message}",
@@ -275,7 +274,7 @@ internal sealed partial class ChatManager : IChatManager
                 audioVolume: _netConfigManager.GetClientCVar(client, CCVars.AdminChatSoundVolume));
         }
 
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Chat,
             LogImpact.Low,
             $"Hook admin from {sender}: {message}",
@@ -356,7 +355,8 @@ internal sealed partial class ChatManager : IChatManager
         _discordLink.SendMessage(message, player.Name, ChatChannel.OOC);
 
         var actorEntity = player.AttachedEntity;
-        _adminLogger.AddStructured(
+        var actorSemantics = AdminLogHelpers.GetSessionSemantics(player, AdminLogEntityRole.Actor, AdminLogEntityRole.Actor);
+        _adminLogger.Add(
             LogType.Chat,
             LogImpact.Low,
             $"OOC from {player.Name}: {message}",
@@ -366,11 +366,9 @@ internal sealed partial class ChatManager : IChatManager
                 message,
                 channel = ChatChannel.OOC.ToString()
             }),
-            players: new[] { player.UserId.UserId },
-            entities: actorEntity is { Valid: true } actor
-                ? new[] { new AdminLogEntityRef(actor, AdminLogEntityRole.Actor) }
-                : null,
-            playerRoles: new Dictionary<Guid, AdminLogEntityRole> { [player.UserId.UserId] = AdminLogEntityRole.Actor });
+            players: actorSemantics.Players,
+            entities: actorSemantics.Entities,
+            playerRoles: actorSemantics.PlayerRoles);
     }
 
     private void SendAdminChat(ICommonSession player, string message)
@@ -378,7 +376,8 @@ internal sealed partial class ChatManager : IChatManager
         if (!_adminManager.IsAdmin(player))
         {
             var unauthorizedActorEntity = player.AttachedEntity;
-            _adminLogger.AddStructured(
+            var unauthorizedActorSemantics = AdminLogHelpers.GetSessionSemantics(player, AdminLogEntityRole.Actor, AdminLogEntityRole.Actor);
+            _adminLogger.Add(
                 LogType.Chat,
                 LogImpact.Extreme,
                 $"{player.Name} attempted to send admin message but was not admin",
@@ -389,11 +388,9 @@ internal sealed partial class ChatManager : IChatManager
                     channel = ChatChannel.AdminChat.ToString(),
                     authorized = false
                 }),
-                players: new[] { player.UserId.UserId },
-                entities: unauthorizedActorEntity is { Valid: true } unauthorizedActor
-                    ? new[] { new AdminLogEntityRef(unauthorizedActor, AdminLogEntityRole.Actor) }
-                    : null,
-                playerRoles: new Dictionary<Guid, AdminLogEntityRole> { [player.UserId.UserId] = AdminLogEntityRole.Actor });
+                players: unauthorizedActorSemantics.Players,
+                entities: unauthorizedActorSemantics.Entities,
+                playerRoles: unauthorizedActorSemantics.PlayerRoles);
             return;
         }
 
@@ -419,7 +416,8 @@ internal sealed partial class ChatManager : IChatManager
         _discordLink.SendMessage(message, player.Name, ChatChannel.AdminChat);
 
         var actorEntity = player.AttachedEntity;
-        _adminLogger.AddStructured(
+        var actorSemantics = AdminLogHelpers.GetSessionSemantics(player, AdminLogEntityRole.Actor, AdminLogEntityRole.Actor);
+        _adminLogger.Add(
             LogType.Chat,
             LogImpact.Medium,
             $"Admin chat from {player.Name}: {message}",
@@ -430,11 +428,9 @@ internal sealed partial class ChatManager : IChatManager
                 channel = ChatChannel.AdminChat.ToString(),
                 authorized = true
             }),
-            players: new[] { player.UserId.UserId },
-            entities: actorEntity is { Valid: true } actor
-                ? new[] { new AdminLogEntityRef(actor, AdminLogEntityRole.Actor) }
-                : null,
-            playerRoles: new Dictionary<Guid, AdminLogEntityRole> { [player.UserId.UserId] = AdminLogEntityRole.Actor });
+            players: actorSemantics.Players,
+            entities: actorSemantics.Entities,
+            playerRoles: actorSemantics.PlayerRoles);
     }
 
     #endregion

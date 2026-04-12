@@ -80,7 +80,7 @@ public sealed class CrayonSystem : SharedCrayonSystem
 
         _charges.TryUseCharge(uid);
 
-        _adminLogger.AddStructured(LogType.CrayonDraw, LogImpact.Low, $"{args.User:user} drew a {component.Color:color} {component.SelectedState}");
+        _adminLogger.Add(LogType.CrayonDraw, LogImpact.Low, $"{args.User:user} drew a {component.Color:color} {component.SelectedState}");
         args.Handled = true;
 
         if (component.DeleteEmpty && _charges.IsEmpty(uid))

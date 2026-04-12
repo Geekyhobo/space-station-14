@@ -320,7 +320,7 @@ public sealed partial class StoreSystem
             }
         }
 
-        _adminLogger.AddStructured(LogType.StorePurchase,
+        _adminLogger.Add(LogType.StorePurchase,
             logImpact,
             $"{buyer:player} purchased listing \"{ListingLocalisationHelpers.GetLocalisedNameOrEntityName(listing, _proto)}\" from {uid}{logExtraInfo}.");
 
@@ -398,7 +398,7 @@ public sealed partial class StoreSystem
         if (!component.RefundAllowed || component.BoughtEntities.Count == 0)
             return;
 
-        _adminLogger.AddStructured(LogType.StoreRefund, LogImpact.Low, $"{buyer:player} has refunded their purchases from {uid:store}");
+        _adminLogger.Add(LogType.StoreRefund, LogImpact.Low, $"{buyer:player} has refunded their purchases from {uid:store}");
 
         for (var i = component.BoughtEntities.Count - 1; i >= 0; i--)
         {

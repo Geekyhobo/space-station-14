@@ -80,7 +80,7 @@ public sealed class ChangelingDevourSystem : EntitySystem
             ent.Comp.CurrentDevourSound = _audio.PlayPvs(ent.Comp.DevourWindupNoise, ent)?.Entity;
         }
 
-        _adminLogger.AddStructured(LogType.Action, LogImpact.Medium, $"{ent:player} started changeling devour windup against {target:player}");
+        _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ent:player} started changeling devour windup against {target:player}");
 
         _doAfterSystem.TryStartDoAfter(new DoAfterArgs(EntityManager, ent, ent.Comp.DevourWindupTime, new ChangelingDevourWindupDoAfterEvent(), ent, target: target, used: ent)
         {
@@ -126,7 +126,7 @@ public sealed class ChangelingDevourSystem : EntitySystem
         if (_net.IsServer)
             ent.Comp.CurrentDevourSound = _audio.PlayPvs(ent.Comp.ConsumeNoise, ent)?.Entity;
 
-        _adminLogger.AddStructured(LogType.Action, LogImpact.Medium, $"{ent.Owner:player} began to devour {args.Target:player} identity");
+        _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ent.Owner:player} began to devour {args.Target:player} identity");
 
         _doAfterSystem.TryStartDoAfter(new DoAfterArgs(EntityManager,
             ent,
@@ -170,7 +170,7 @@ public sealed class ChangelingDevourSystem : EntitySystem
             ent.Owner,
             PopupType.LargeCaution);
 
-        _adminLogger.AddStructured(LogType.Action, LogImpact.Medium, $"{ent.Owner:player}  successfully devoured {args.Target:player}'s identity");
+        _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{ent.Owner:player}  successfully devoured {args.Target:player}'s identity");
 
         if (_inventorySystem.TryGetSlotEntity(target, "jumpsuit", out var item)
             && TryComp<ButcherableComponent>(item, out var butcherable))

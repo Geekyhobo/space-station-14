@@ -41,7 +41,7 @@ public sealed class DamageOtherOnHitSystem : SharedDamageOtherOnHitSystem
 
             if (thrower is { } source)
             {
-                _adminLogger.AddStructured(
+                _adminLogger.Add(
                     LogType.ThrowHit,
                     LogImpact.Medium,
                     $"{args.Target:victim} received {dmg.GetTotal():damage} damage from {uid:tool} thrown by {source:actor}",
@@ -49,7 +49,7 @@ public sealed class DamageOtherOnHitSystem : SharedDamageOtherOnHitSystem
             }
             else
             {
-                _adminLogger.AddStructured(
+                _adminLogger.Add(
                     LogType.ThrowHit,
                     LogImpact.Medium,
                     $"{args.Target:victim} received {dmg.GetTotal():damage} damage from {uid:tool}",

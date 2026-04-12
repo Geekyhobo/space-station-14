@@ -178,7 +178,7 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
             ent.Comp.SecurityChannel,
             ent);
 
-        _adminLogger.AddStructured(LogType.Identity, LogImpact.Low, $"{mob.Value:name} changed criminal status for {name} to \"{statusString}\"");
+        _adminLogger.Add(LogType.Identity, LogImpact.Low, $"{mob.Value:name} changed criminal status for {name} to \"{statusString}\"");
 
         UpdateUserInterface(ent);
     }

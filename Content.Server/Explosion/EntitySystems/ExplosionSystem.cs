@@ -258,7 +258,8 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
 
         if (user == null)
         {
-            _adminLogger.AddStructured(
+            var semantics = AdminLogHelpers.GetActorSemantics(_playerManager, uid, uid);
+            _adminLogger.Add(
                 LogType.Explosion,
                 LogImpact.High,
                 $"{uid:entity} exploded ({typeId}) at Pos:{(posFound ? $"{gridPos:coordinates}" : "[Grid or Map not found]")} with intensity {totalIntensity} slope {slope}",
@@ -271,11 +272,9 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
                     slope,
                     radius = IntensityToRadius(totalIntensity, slope, maxTileIntensity)
                 }),
-                entities:
-                [
-                    new AdminLogEntityRef(uid, AdminLogEntityRole.Actor),
-                    new AdminLogEntityRef(uid, AdminLogEntityRole.Tool),
-                ]);
+                players: semantics.Players,
+                entities: semantics.Entities,
+                playerRoles: semantics.PlayerRoles);
         }
         else
         {
@@ -283,13 +282,10 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
             var logImpact = (alertMinExplosionIntensity > -1 && totalIntensity >= alertMinExplosionIntensity)
                 ? LogImpact.Extreme
                 : LogImpact.High;
-
-            Guid[]? players = null;
-            if (_playerManager.TryGetSessionByEntity(user.Value, out var session))
-                players = [session.UserId.UserId];
+            var semantics = AdminLogHelpers.GetActorSemantics(_playerManager, user.Value, uid);
 
             if (posFound)
-                _adminLogger.AddStructured(
+                _adminLogger.Add(
                     LogType.Explosion,
                     logImpact,
                     $"{user.Value:user} caused {uid:entity} to explode ({typeId}) at Pos:{gridPos:coordinates} with intensity {totalIntensity} slope {slope}",
@@ -303,14 +299,11 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
                         slope,
                         radius = IntensityToRadius(totalIntensity, slope, maxTileIntensity)
                     }),
-                    players: players,
-                    entities:
-                    [
-                        new AdminLogEntityRef(user.Value, AdminLogEntityRole.Actor),
-                        new AdminLogEntityRef(uid, AdminLogEntityRole.Tool),
-                    ]);
+                    players: semantics.Players,
+                    entities: semantics.Entities,
+                    playerRoles: semantics.PlayerRoles);
             else
-                _adminLogger.AddStructured(
+                _adminLogger.Add(
                     LogType.Explosion,
                     logImpact,
                     $"{user.Value:user} caused {uid:entity} to explode ({typeId}) at Pos:[Grid or Map not found] with intensity {totalIntensity} slope {slope}",
@@ -324,12 +317,9 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
                         slope,
                         radius = IntensityToRadius(totalIntensity, slope, maxTileIntensity)
                     }),
-                    players: players,
-                    entities:
-                    [
-                        new AdminLogEntityRef(user.Value, AdminLogEntityRole.Actor),
-                        new AdminLogEntityRef(uid, AdminLogEntityRole.Tool),
-                    ]);
+                    players: semantics.Players,
+                    entities: semantics.Entities,
+                    playerRoles: semantics.PlayerRoles);
         }
     }
 
@@ -359,11 +349,11 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
 
         if (addLog) // dont log if already created a separate, more detailed, log.
         {
-            Guid[]? players = null;
-            if (cause is { } causeEntity && _playerManager.TryGetSessionByEntity(causeEntity, out var session))
-                players = [session.UserId.UserId];
+            var semantics = cause is { } causeEntity
+                ? AdminLogHelpers.GetActorSemantics(_playerManager, causeEntity)
+                : default(AdminLogExplicitSemantics);
 
-            _adminLogger.AddStructured(
+            _adminLogger.Add(
                 LogType.Explosion,
                 LogImpact.High,
                 $"Explosion ({typeId}) spawned at {epicenter:coordinates} with intensity {totalIntensity} slope {slope}",
@@ -376,13 +366,9 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
                     slope,
                     radius = IntensityToRadius(totalIntensity, slope, maxTileIntensity)
                 }),
-                players: players,
-                entities: cause is { } source
-                    ?
-                    [
-                        new AdminLogEntityRef(source, AdminLogEntityRole.Actor),
-                    ]
-                    : []);
+                players: semantics.Players,
+                entities: semantics.Entities,
+                playerRoles: semantics.PlayerRoles);
         }
 
         // try to combine explosions on the same tile if they are the same type

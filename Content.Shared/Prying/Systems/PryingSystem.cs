@@ -164,11 +164,11 @@ public sealed class PryingSystem : EntitySystem
 
         if (tool != user && tool != null)
         {
-            _adminLogger.AddStructured(LogType.Action, LogImpact.Low, $"{user} is using {tool.Value} to pry {target}");
+            _adminLogger.Add(LogType.Action, LogImpact.Low, $"{user} is using {tool.Value} to pry {target}");
         }
         else
         {
-            _adminLogger.AddStructured(LogType.Action, LogImpact.Low, $"{user} is prying {target}");
+            _adminLogger.Add(LogType.Action, LogImpact.Low, $"{user} is prying {target}");
         }
         return _doAfterSystem.TryStartDoAfter(doAfterArgs, out id);
     }

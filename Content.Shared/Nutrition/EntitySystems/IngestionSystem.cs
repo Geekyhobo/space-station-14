@@ -294,11 +294,10 @@ public sealed partial class IngestionSystem : EntitySystem
             _popup.PopupEntity(Loc.GetString("edible-force-feed", ("user", userName), ("verb", GetEdibleVerb(food))), args.User, entity);
 
             // logging
-            GetActorVictimPlayerData(args.User, entity.Owner, out var players, out var playerRoles);
-            _adminLogger.AddStructured(
+            _adminLogger.Add(
                 LogType.ForceFeed,
                 LogImpact.Medium,
-                $"{args.User:user} is forcing {entity:target} to eat {food:food} {foodSolution}",
+                $"{args.User:actor} is forcing {entity.Owner:victim} to eat {food:tool} {foodSolution}",
                 new
                 {
                     actor = (int) args.User,
@@ -306,24 +305,17 @@ public sealed partial class IngestionSystem : EntitySystem
                     tool = (int) food,
                     stage = "attempt",
                     foodSolution = SerializeSolutionForAdminLog(foodSolution)
-                },
-                players: players,
-                entities:
-                [
-                    new AdminLogEntityRef(args.User, AdminLogEntityRole.Actor),
-                    new AdminLogEntityRef(entity.Owner, AdminLogEntityRole.Victim),
-                    new AdminLogEntityRef(food, AdminLogEntityRole.Tool),
-                ],
-                playerRoles: playerRoles);
+                });
         }
         else
         {
             // log voluntary eating
-            GetActorVictimPlayerData(entity.Owner, entity.Owner, out var players, out var playerRoles);
-            _adminLogger.AddStructured(
+            var selfActionSemantics = AdminLogHelpers.GetActorVictimToolSemantics(_player, entity.Owner, entity.Owner, food);
+
+            _adminLogger.Add(
                 LogType.Ingestion,
                 LogImpact.Low,
-                $"{entity:target} is eating {food:food} {foodSolution}",
+                $"{entity.Owner:actor} is eating {food:tool} {foodSolution}",
                 new
                 {
                     actor = (int) entity.Owner,
@@ -332,14 +324,9 @@ public sealed partial class IngestionSystem : EntitySystem
                     stage = "attempt",
                     foodSolution = SerializeSolutionForAdminLog(foodSolution)
                 },
-                players: players,
-                entities:
-                [
-                    new AdminLogEntityRef(entity.Owner, AdminLogEntityRole.Actor),
-                    new AdminLogEntityRef(entity.Owner, AdminLogEntityRole.Victim),
-                    new AdminLogEntityRef(food, AdminLogEntityRole.Tool),
-                ],
-                playerRoles: playerRoles);
+                players: selfActionSemantics.Players,
+                entities: selfActionSemantics.Entities,
+                playerRoles: selfActionSemantics.PlayerRoles);
         }
     }
 
@@ -517,11 +504,10 @@ public sealed partial class IngestionSystem : EntitySystem
 
             // log successful forced feeding
             // TODO: Use correct verb
-            GetActorVictimPlayerData(args.User, args.Target, out var players, out var playerRoles);
-            _adminLogger.AddStructured(
+            _adminLogger.Add(
                 LogType.ForceFeed,
                 LogImpact.Medium,
-                $"{entity:user} forced {args.User:target} to eat {entity:food}",
+                $"{args.User:actor} forced {args.Target:victim} to eat {entity.Owner:tool}",
                 new
                 {
                     actor = (int) args.User,
@@ -529,15 +515,7 @@ public sealed partial class IngestionSystem : EntitySystem
                     tool = (int) entity.Owner,
                     stage = "success",
                     consumed = SerializeSolutionForAdminLog(args.Split)
-                },
-                players: players,
-                entities:
-                [
-                    new AdminLogEntityRef(args.User, AdminLogEntityRole.Actor),
-                    new AdminLogEntityRef(args.Target, AdminLogEntityRole.Victim),
-                    new AdminLogEntityRef(entity.Owner, AdminLogEntityRole.Tool),
-                ],
-                playerRoles: playerRoles);
+                });
         }
         else
         {
@@ -550,11 +528,12 @@ public sealed partial class IngestionSystem : EntitySystem
             // TODO: Use correct verb
             // the past tense is tricky here
             // localized admin logs when?
-            GetActorVictimPlayerData(args.User, args.Target, out var players, out var playerRoles);
-            _adminLogger.AddStructured(
+            var selfActionSemantics = AdminLogHelpers.GetActorVictimToolSemantics(_player, args.User, args.Target, entity.Owner);
+
+            _adminLogger.Add(
                 LogType.Ingestion,
                 LogImpact.Low,
-                $"{args.User:target} ate {entity:food}",
+                $"{args.User:actor} ate {entity.Owner:tool}",
                 new
                 {
                     actor = (int) args.User,
@@ -563,14 +542,9 @@ public sealed partial class IngestionSystem : EntitySystem
                     stage = "success",
                     consumed = SerializeSolutionForAdminLog(args.Split)
                 },
-                players: players,
-                entities:
-                [
-                    new AdminLogEntityRef(args.User, AdminLogEntityRole.Actor),
-                    new AdminLogEntityRef(args.Target, AdminLogEntityRole.Victim),
-                    new AdminLogEntityRef(entity.Owner, AdminLogEntityRole.Tool),
-                ],
-                playerRoles: playerRoles);
+                players: selfActionSemantics.Players,
+                entities: selfActionSemantics.Entities,
+                playerRoles: selfActionSemantics.PlayerRoles);
         }
 
         // BREAK OUR UTENSILS
@@ -628,37 +602,6 @@ public sealed partial class IngestionSystem : EntitySystem
     {
         if (IsEmpty(entity))
             args.Cancelled = true;
-    }
-
-    private void GetActorVictimPlayerData(
-        EntityUid actor,
-        EntityUid victim,
-        out Guid[]? players,
-        out Dictionary<Guid, AdminLogEntityRole>? playerRoles)
-    {
-        players = null;
-        playerRoles = null;
-
-        if (_player.TryGetSessionByEntity(actor, out var actorSession))
-        {
-            players = [actorSession.UserId.UserId];
-            playerRoles = new Dictionary<Guid, AdminLogEntityRole>
-            {
-                [actorSession.UserId.UserId] = AdminLogEntityRole.Actor
-            };
-        }
-
-        if (!_player.TryGetSessionByEntity(victim, out var victimSession))
-            return;
-
-        if (players == null)
-            players = [victimSession.UserId.UserId];
-        else if (players[0] != victimSession.UserId.UserId)
-            players = [players[0], victimSession.UserId.UserId];
-
-        playerRoles ??= new Dictionary<Guid, AdminLogEntityRole>();
-        if (!playerRoles.ContainsKey(victimSession.UserId.UserId))
-            playerRoles[victimSession.UserId.UserId] = AdminLogEntityRole.Victim;
     }
 
     private static object SerializeSolutionForAdminLog(Solution solution)

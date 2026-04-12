@@ -51,7 +51,7 @@ public sealed class SuicideSystem : EntitySystem
         if (!TryComp<MobStateComponent>(victim, out var mobState) || _mobState.IsDead(victim, mobState))
             return false;
 
-        _adminLogger.AddStructured(LogType.Mind, $"{victim:actor} is attempting to suicide");
+        _adminLogger.Add(LogType.Mind, $"{victim:actor} is attempting to suicide");
 
         ICommonSession? session = null;
 
@@ -76,11 +76,11 @@ public sealed class SuicideSystem : EntitySystem
         // Since the player is already dead the log will not contain their username.
         if (session != null)
         {
-            _adminLogger.AddStructured(LogType.Mind, $"{session:player} suicided.");
+            _adminLogger.Add(LogType.Mind, $"{session:player} suicided.");
         }
         else
         {
-            _adminLogger.AddStructured(LogType.Mind, $"{victim:actor} suicided.");
+            _adminLogger.Add(LogType.Mind, $"{victim:actor} suicided.");
         }
         return true;
     }

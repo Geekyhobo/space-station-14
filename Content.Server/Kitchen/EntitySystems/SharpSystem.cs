@@ -138,7 +138,7 @@ public sealed class SharpSystem : EntitySystem
 
         args.Handled = true;
 
-        _adminLogger.AddStructured(LogType.Gib,
+        _adminLogger.Add(LogType.Gib,
             $"{args.User:user} " +
             $"has butchered {args.Target:target} " +
             $"with {args.Used:knife}");

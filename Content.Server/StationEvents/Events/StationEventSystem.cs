@@ -41,7 +41,7 @@ public abstract class StationEventSystem<T> : GameRuleSystem<T> where T : ICompo
         if (!TryComp<StationEventComponent>(uid, out var stationEvent))
             return;
 
-        _adminLogger.AddStructured(LogType.EventAnnounced, $"Event added / announced: {uid}");
+        _adminLogger.Add(LogType.EventAnnounced, $"Event added / announced: {uid}");
 
         // we don't want to send to players who aren't in game (i.e. in the lobby)
         Filter allPlayersInGame = Filter.Empty().AddWhere(GameTicker.UserHasJoinedGame);
@@ -60,7 +60,7 @@ public abstract class StationEventSystem<T> : GameRuleSystem<T> where T : ICompo
         if (!TryComp<StationEventComponent>(uid, out var stationEvent))
             return;
 
-        _adminLogger.AddStructured(LogType.EventStarted, LogImpact.High, $"Event started: {uid}");
+        _adminLogger.Add(LogType.EventStarted, LogImpact.High, $"Event started: {uid}");
 
         if (stationEvent.Duration != null)
         {
@@ -80,7 +80,7 @@ public abstract class StationEventSystem<T> : GameRuleSystem<T> where T : ICompo
         if (!TryComp<StationEventComponent>(uid, out var stationEvent))
             return;
 
-        _adminLogger.AddStructured(LogType.EventStopped, $"Event ended: {uid}");
+        _adminLogger.Add(LogType.EventStopped, $"Event ended: {uid}");
 
         // we don't want to send to players who aren't in game (i.e. in the lobby)
         Filter allPlayersInGame = Filter.Empty().AddWhere(GameTicker.UserHasJoinedGame);

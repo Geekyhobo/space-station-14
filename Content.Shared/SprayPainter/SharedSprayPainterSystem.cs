@@ -113,7 +113,7 @@ public abstract class SharedSprayPainterSystem : EntitySystem
             Group: args.Group);
         RaiseLocalEvent(target, ref ev);
 
-        _adminLogger.AddStructured(LogType.Action,
+        _adminLogger.Add(LogType.Action,
             LogImpact.Low,
             $"{args.Args.User:user} painted {args.Args.Target.Value:target}");
 
@@ -220,7 +220,7 @@ public abstract class SharedSprayPainterSystem : EntitySystem
             return;
 
         // Log the attempt
-        _adminLogger.AddStructured(LogType.Action,
+        _adminLogger.Add(LogType.Action,
             LogImpact.Low,
             $"{args.User:user} is painting {ent:target} to '{selectedStyle}' at {Transform(ent).Coordinates:targetlocation}");
     }

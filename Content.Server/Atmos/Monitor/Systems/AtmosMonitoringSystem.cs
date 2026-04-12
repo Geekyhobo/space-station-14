@@ -441,10 +441,10 @@ public sealed class AtmosMonitorSystem : EntitySystem
             if (threshold.Ignore != logPreviousThreshold.Ignore)
             {
                 string enabled = threshold.Ignore ? "disabled" : "enabled";
-                _adminLogger.AddStructured(
+                _adminLogger.Add(
                     LogType.AtmosDeviceSetting,
                     LogImpact.Medium,
-                    $"{uid} {logPrefix} thresholds {enabled}"
+                    $"{uid:subject} {logPrefix} thresholds {enabled}"
                 );
             }
 
@@ -453,19 +453,19 @@ public sealed class AtmosMonitorSystem : EntitySystem
                 if (change.Current.Enabled != change.Previous?.Enabled)
                 {
                     string enabled = change.Current.Enabled ? "enabled" : "disabled";
-                    _adminLogger.AddStructured(
+                    _adminLogger.Add(
                         LogType.AtmosDeviceSetting,
                         LogImpact.Medium,
-                        $"{uid} {logPrefix} {change.Type} {enabled}"
+                        $"{uid:subject} {logPrefix} {change.Type} {enabled}"
                     );
                 }
 
                 if (change.Current.Value != change.Previous?.Value)
                 {
-                    _adminLogger.AddStructured(
+                    _adminLogger.Add(
                         LogType.AtmosDeviceSetting,
                         LogImpact.Medium,
-                        $"{uid} {logPrefix} {change.Type} changed from {change.Previous?.Value} {logValueSuffix} to {change.Current.Value} {logValueSuffix}"
+                        $"{uid:subject} {logPrefix} {change.Type} changed from {change.Previous?.Value} {logValueSuffix} to {change.Current.Value} {logValueSuffix}"
                     );
                 }
             }

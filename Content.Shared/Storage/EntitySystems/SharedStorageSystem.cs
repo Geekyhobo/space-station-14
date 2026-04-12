@@ -735,7 +735,7 @@ public abstract class SharedStorageSystem : EntitySystem
         // If the user's active hand is empty, try pick up the item.
         if (!_sharedHandsSystem.TryGetActiveItem(player.AsNullable(), out var activeItem))
         {
-            _adminLogger.AddStructured(
+            _adminLogger.Add(
                 LogType.Storage,
                 LogImpact.Low,
                 $"{player:player} is attempting to take {item:item} out of {storage:storage}");
@@ -750,7 +750,7 @@ public abstract class SharedStorageSystem : EntitySystem
             return;
         }
 
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Storage,
             LogImpact.Low,
             $"{player:player} is interacting with {item:item} while it is stored in {storage:storage} using {activeItem:used}");
@@ -772,7 +772,7 @@ public abstract class SharedStorageSystem : EntitySystem
         if (!ValidateInput(args, msg.StorageEnt, msg.ItemEnt, out var player, out var storage, out var item))
             return;
 
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Storage,
             LogImpact.Low,
             $"{player:player} is updating the location of {item:item} within {storage:storage}");
@@ -830,7 +830,7 @@ public abstract class SharedStorageSystem : EntitySystem
         if (!ValidateInput(args, msg.StorageEnt, msg.ItemEnt, out var player, out var storage, out var item, held: true))
             return;
 
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Storage,
             LogImpact.Low,
             $"{player:player} is inserting {item:item} into {storage:storage}");
@@ -842,7 +842,7 @@ public abstract class SharedStorageSystem : EntitySystem
         if (!ValidateInput(args, msg.StorageEnt, msg.ItemEnt, out var player, out var storage, out var item, held: true))
             return;
 
-        _adminLogger.AddStructured(
+        _adminLogger.Add(
             LogType.Storage,
             LogImpact.Low,
             $"{player:player} is inserting {item:item} into {storage:storage}");

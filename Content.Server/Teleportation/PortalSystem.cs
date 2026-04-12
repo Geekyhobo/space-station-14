@@ -16,6 +16,6 @@ public sealed class PortalSystem : SharedPortalSystem
         EntityCoordinates target)
     {
         if (HasComp<MindContainerComponent>(subject) && !HasComp<GhostComponent>(subject))
-            _adminLogger.AddStructured(LogType.Teleport, LogImpact.Low, $"{subject:player} teleported via {portal} from {source} to {target}");
+            _adminLogger.Add(LogType.Teleport, LogImpact.Low, $"{subject:player} teleported via {portal} from {source} to {target}");
     }
 }
